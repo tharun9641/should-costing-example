@@ -497,6 +497,10 @@
 .badge.conf-high { color: var(--good); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
 .badge.conf-medium { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
 .badge.conf-low { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+.badge.status-live,
+.badge.status-indexed { color: var(--good); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+.badge.status-cached { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.badge.status-fallback { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
 
 /* ---------- Features ---------- */
 

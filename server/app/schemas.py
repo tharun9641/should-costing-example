@@ -2,6 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+# Where a rate came from: fetched within its TTL ("live"), an older fetch kept in
+# memory ("cached"), the stored app/data value because no fetch succeeded
+# ("fallback"), derived from a price index ("indexed"), entered by hand and never
+# fetched ("manual"), or fixed by definition such as USD per USD ("fixed").
+RateStatus = Literal["live", "cached", "fallback", "indexed", "manual", "fixed"]
+
 
 # ---------- Catalog ----------
 
@@ -27,6 +33,7 @@ class Location(BaseModel):
     profit_pct: float
     fx_source: str = "Unverified"
     fx_as_of: str | None = None
+    fx_status: RateStatus = "fallback"
     rate_source: str = "Unverified"
     rate_as_of: str | None = None
 
@@ -70,6 +77,7 @@ class MaterialRate(BaseModel):
     currency: str
     source: str
     as_of: str | None
+    status: RateStatus = "manual"
 
 
 class LabourRate(BaseModel):
@@ -80,6 +88,7 @@ class LabourRate(BaseModel):
     currency: str
     source: str
     as_of: str | None
+    status: RateStatus = "manual"
 
 
 class MachineRate(BaseModel):
@@ -91,6 +100,7 @@ class MachineRate(BaseModel):
     currency: str
     source: str
     as_of: str | None
+    status: RateStatus = "manual"
 
 
 # ---------- Part analysis ----------

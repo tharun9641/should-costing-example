@@ -12,6 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from app.config import settings
+from app.services import live
 from app.schemas import (
     LabourRate,
     Location,
@@ -56,10 +57,26 @@ def reload() -> None:
 
 
 def get_location(location_id: str) -> Location:
+    """A location with its exchange rate taken live when available."""
     try:
-        return locations()[location_id.upper()]
+        return _with_live_fx(locations()[location_id.upper()])
     except KeyError:
         raise NotFoundError(f"Unknown location '{location_id}'") from None
+
+
+def all_locations() -> list[Location]:
+    return [_with_live_fx(loc) for loc in locations().values()]
+
+
+def _with_live_fx(loc: Location) -> Location:
+    if loc.currency == "USD":
+        return loc.model_copy(update={"fx_per_usd": 1.0, "fx_status": "fixed"})
+    q = live.fx(loc.currency)
+    if q is None:  # stored fx_per_usd, fx_source and fx_as_of stay as they are
+        return loc.model_copy(update={"fx_status": "fallback"})
+    return loc.model_copy(update={
+        "fx_per_usd": q.value, "fx_source": q.source, "fx_as_of": q.as_of, "fx_status": q.status,
+    })
 
 
 def get_material(material_id: str) -> Material:

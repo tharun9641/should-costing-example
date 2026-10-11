@@ -13,6 +13,8 @@ class Settings:
         "SC_DATA_DIR", str(Path(__file__).parent / "data")
     )
     max_upload_mb: int = int(os.getenv("SC_MAX_UPLOAD_MB", "50"))
+    # Fetch FX / metal prices from public sources; "off" uses only app/data values.
+    live_rates: bool = os.getenv("SC_LIVE_RATES", "on").strip().lower() not in ("off", "0", "false", "no")
     cors_origins: list[str] = field(
         default_factory=lambda: _csv(
             os.getenv(

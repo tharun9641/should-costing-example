@@ -59,6 +59,21 @@ app/
   data/*.json              Rate tables — edit these to update prices
 ```
 
+### Live rates
+
+`services/live.py` fetches market data from free, keyless public sources and caches it in
+memory. Lookups never wait: a stale or missing value starts a background refresh (5 s
+timeout) and the request uses what is in memory, or the stored `app/data` value. Every rate
+in the API carries `source`, `as_of` and `status` (`live`, `cached`, `fallback`, `indexed`,
+`manual`, `fixed`); an estimate lists any fallback value in its assumptions.
+
+| Data | Source | Cache |
+|---|---|---|
+| Exchange rates | [Frankfurter](https://api.frankfurter.dev/v2/rates?base=USD) | 12 h |
+
+`SC_LIVE_RATES=off` turns all fetching off (the test suite runs this way, with recorded
+responses in `tests/fixtures/live`).
+
 ### Limitations
 
 - **Rate data is indicative seed data** (`app/data/*.json`). Swap in your own benchmarks or

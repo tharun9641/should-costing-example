@@ -3,6 +3,12 @@ import { getRates } from '../api'
 import { money } from '../format'
 import Icon from './Icon'
 
+// live: fetched recently · cached: older fetch · fallback: stored value (fetch failed or off)
+// indexed: stored price moved by a price index · manual: entered by hand · fixed: by definition
+export function StatusBadge({ status }) {
+  return <span className={`badge status-${status}`}>{status}</span>
+}
+
 function RateTable({ title, rows, nameKey, unit }) {
   return (
     <section className="panel section">
@@ -22,7 +28,8 @@ function RateTable({ title, rows, nameKey, unit }) {
             {rows.map((r) => (
               <tr key={r[nameKey]}>
                 <td>
-                  <span className={nameKey === 'skill' ? 'cap' : ''}>{r[nameKey]}</span>
+                  <span className={nameKey === 'skill' ? 'cap' : ''}>{r[nameKey]}</span>{' '}
+                  <StatusBadge status={r.status} />
                   <div className="muted small">
                     {r.source}
                     {r.as_of && ` · as of ${r.as_of}`}
@@ -81,7 +88,8 @@ export default function RatesView({ locations, loading }) {
         {loc && (
           <div className="rate-facts">
             <span>
-              Currency <b>{loc.currency}</b> · {loc.fx_per_usd} per USD ({loc.fx_source}
+              Currency <b>{loc.currency}</b> · {loc.fx_per_usd} per USD <StatusBadge status={loc.fx_status} />{' '}
+              ({loc.fx_source}
               {loc.fx_as_of && `, ${loc.fx_as_of}`})
             </span>
             <span>

@@ -1,5 +1,8 @@
 import io
+import os
 from pathlib import Path
+
+os.environ["SC_LIVE_RATES"] = "off"  # tests never hit the network; see the live_feeds fixture
 
 import pytest
 import trimesh
@@ -144,3 +147,32 @@ def square_plate_4holes_stl() -> bytes:
         for x in (-25, 25) for y in (-25, 25)
     ])
     return mesh_bytes(trimesh.creation.box(extents=[100, 100, 30]).difference(holes))
+
+
+LIVE_FIXTURES = FIXTURES / "live"
+
+
+def recorded_response(url: str) -> bytes:
+    """Recorded body for a live-data URL (tests/fixtures/live)."""
+    if "frankfurter" in url:
+        return (LIVE_FIXTURES / "frankfurter_usd.json").read_bytes()
+    if "fredgraph.csv?id=" in url:
+        return (LIVE_FIXTURES / f"fred_{url.rsplit('=', 1)[1]}.csv").read_bytes()
+    raise AssertionError(f"no recorded response for {url}")
+
+
+@pytest.fixture
+def live_feeds(monkeypatch):
+    """Live rates on, served from recorded responses, feeds emptied before and after."""
+    from app.services import live
+
+    monkeypatch.setattr(live, "enabled", lambda: True)
+    monkeypatch.setattr(live, "_http_get", recorded_response)
+
+    def reset():
+        for feed in live.FEEDS:
+            feed.data, feed.fetched_at, feed.error, feed._refreshing = {}, None, None, False
+
+    reset()
+    yield live
+    reset()

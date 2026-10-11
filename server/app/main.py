@@ -1,12 +1,23 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routers import analysis, catalog as catalog_router
+from app.services import live
 from app.services.catalog import NotFoundError
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    live.warm()  # background fetch so live rates are ready soon after a cold start
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Should-Costing API",
     description=(
         "Estimate part cost from a drawing (PDF) or CAD model: material cost and "

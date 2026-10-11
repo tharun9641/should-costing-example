@@ -198,6 +198,15 @@ def estimate(
     assumptions.append(
         f"Overhead {loc.overhead_pct:g}% of conversion cost, profit {loc.profit_pct:g}%."
     )
+    fallbacks = []
+    if loc.fx_status == "fallback":
+        fallbacks.append(f"exchange rate {loc.currency}/USD {loc.fx_per_usd:g}")
+    if mrate.status == "fallback":
+        fallbacks.append(f"{mat.name} price")
+    if fallbacks:
+        assumptions.append(
+            "Live rate unavailable; stored fallback value used for " + ", ".join(fallbacks) + "."
+        )
 
     fx = loc.fx_per_usd
     return EstimateResult(

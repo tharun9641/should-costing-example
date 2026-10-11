@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api", tags=["catalog & rates"])
 
 @router.get("/locations", response_model=list[Location])
 def list_locations():
-    return list(catalog.locations().values())
+    return catalog.all_locations()
 
 
 @router.get("/materials", response_model=list[Material])
