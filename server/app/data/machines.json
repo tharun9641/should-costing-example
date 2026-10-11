@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "description": "Machine catalogue. hourly_rate_usd is the machine burden (depreciation, power, tooling, floor space) at a US baseline; location machine_rate_factor is applied on top. mrr_cm3_per_min is the roughing material-removal rate at machinability 1.0.",
+    "updated": "2026-10-01"
+  },
+  "machines": [
+    {
+      "id": "CNC_LATHE",
+      "name": "CNC Turning Centre (2-axis)",
+      "process": "turning",
+      "hourly_rate_usd": 45,
+      "setup_hours": 1.0,
+      "mrr_cm3_per_min": 40,
+      "finish_cm2_per_min": 60,
+      "operator_ratio": 0.5,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [400, 400, 1000]
+    },
+    {
+      "id": "SWISS_LATHE",
+      "name": "Swiss-type Sliding Head Lathe",
+      "process": "turning",
+      "hourly_rate_usd": 60,
+      "setup_hours": 2.5,
+      "mrr_cm3_per_min": 12,
+      "finish_cm2_per_min": 40,
+      "operator_ratio": 0.25,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [32, 32, 300]
+    },
+    {
+      "id": "CNC_MILL_3AX",
+      "name": "CNC Vertical Machining Centre (3-axis)",
+      "process": "milling",
+      "hourly_rate_usd": 55,
+      "setup_hours": 1.5,
+      "mrr_cm3_per_min": 30,
+      "finish_cm2_per_min": 25,
+      "operator_ratio": 0.5,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [500, 800, 1000]
+    },
+    {
+      "id": "CNC_MILL_5AX",
+      "name": "CNC 5-axis Machining Centre",
+      "process": "milling",
+      "hourly_rate_usd": 95,
+      "setup_hours": 2.5,
+      "mrr_cm3_per_min": 30,
+      "finish_cm2_per_min": 20,
+      "operator_ratio": 0.6,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [500, 650, 650]
+    },
+    {
+      "id": "SURFACE_GRINDER",
+      "name": "Surface / Cylindrical Grinder",
+      "process": "grinding",
+      "hourly_rate_usd": 50,
+      "setup_hours": 0.75,
+      "mrr_cm3_per_min": 0.5,
+      "finish_cm2_per_min": 8,
+      "operator_ratio": 1.0,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [300, 600, 1000]
+    },
+    {
+      "id": "WIRE_EDM",
+      "name": "Wire EDM",
+      "process": "edm",
+      "hourly_rate_usd": 40,
+      "setup_hours": 1.0,
+      "mrr_cm3_per_min": 0.3,
+      "finish_cm2_per_min": 1.5,
+      "operator_ratio": 0.15,
+      "operator_skill": "machinist",
+      "max_envelope_mm": [300, 400, 600]
+    },
+    {
+      "id": "LASER_CUTTER",
+      "name": "Fibre Laser Cutter",
+      "process": "sheet_cutting",
+      "hourly_rate_usd": 85,
+      "setup_hours": 0.25,
+      "cut_mm_per_min": 3000,
+      "operator_ratio": 0.3,
+      "operator_skill": "operator",
+      "max_envelope_mm": [25, 1500, 3000]
+    },
+    {
+      "id": "PRESS_BRAKE",
+      "name": "CNC Press Brake",
+      "process": "bending",
+      "hourly_rate_usd": 45,
+      "setup_hours": 0.5,
+      "seconds_per_bend": 20,
+      "operator_ratio": 1.0,
+      "operator_skill": "operator",
+      "max_envelope_mm": [12, 1500, 3000]
+    },
+    {
+      "id": "DRILL_TAP",
+      "name": "Drilling / Tapping Station",
+      "process": "drilling",
+      "hourly_rate_usd": 20,
+      "setup_hours": 0.25,
+      "seconds_per_hole": 15,
+      "operator_ratio": 1.0,
+      "operator_skill": "operator",
+      "max_envelope_mm": [300, 500, 800]
+    }
+  ]
+}

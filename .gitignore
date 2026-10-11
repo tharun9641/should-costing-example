@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output (also covered in frontend/ and server/)
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

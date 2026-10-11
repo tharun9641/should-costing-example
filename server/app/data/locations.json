@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "description": "Indicative fully-burdened labour rates (USD/hour) and regional cost factors. Replace with your own benchmark data.",
+    "updated": "2026-10-01"
+  },
+  "locations": [
+    {
+      "id": "IN-CHENNAI",
+      "name": "Chennai, India",
+      "country": "India",
+      "currency": "INR",
+      "fx_per_usd": 84.0,
+      "labour_rates": { "operator": 3.5, "machinist": 5.0, "programmer": 8.0, "inspector": 4.5 },
+      "material_price_factor": 1.02,
+      "machine_rate_factor": 0.55,
+      "overhead_pct": 18,
+      "profit_pct": 12
+    },
+    {
+      "id": "IN-PUNE",
+      "name": "Pune, India",
+      "country": "India",
+      "currency": "INR",
+      "fx_per_usd": 84.0,
+      "labour_rates": { "operator": 3.8, "machinist": 5.5, "programmer": 8.5, "inspector": 4.8 },
+      "material_price_factor": 1.02,
+      "machine_rate_factor": 0.57,
+      "overhead_pct": 18,
+      "profit_pct": 12
+    },
+    {
+      "id": "CN-SHENZHEN",
+      "name": "Shenzhen, China",
+      "country": "China",
+      "currency": "CNY",
+      "fx_per_usd": 7.2,
+      "labour_rates": { "operator": 6.5, "machinist": 9.0, "programmer": 13.0, "inspector": 8.0 },
+      "material_price_factor": 0.95,
+      "machine_rate_factor": 0.6,
+      "overhead_pct": 15,
+      "profit_pct": 10
+    },
+    {
+      "id": "VN-HCMC",
+      "name": "Ho Chi Minh City, Vietnam",
+      "country": "Vietnam",
+      "currency": "VND",
+      "fx_per_usd": 25000.0,
+      "labour_rates": { "operator": 3.2, "machinist": 4.8, "programmer": 7.5, "inspector": 4.2 },
+      "material_price_factor": 1.05,
+      "machine_rate_factor": 0.6,
+      "overhead_pct": 16,
+      "profit_pct": 12
+    },
+    {
+      "id": "MX-MONTERREY",
+      "name": "Monterrey, Mexico",
+      "country": "Mexico",
+      "currency": "MXN",
+      "fx_per_usd": 18.5,
+      "labour_rates": { "operator": 5.5, "machinist": 8.0, "programmer": 12.0, "inspector": 7.0 },
+      "material_price_factor": 1.03,
+      "machine_rate_factor": 0.7,
+      "overhead_pct": 18,
+      "profit_pct": 12
+    },
+    {
+      "id": "US-MICHIGAN",
+      "name": "Michigan, USA",
+      "country": "USA",
+      "currency": "USD",
+      "fx_per_usd": 1.0,
+      "labour_rates": { "operator": 32.0, "machinist": 42.0, "programmer": 55.0, "inspector": 38.0 },
+      "material_price_factor": 1.1,
+      "machine_rate_factor": 1.0,
+      "overhead_pct": 25,
+      "profit_pct": 15
+    },
+    {
+      "id": "DE-STUTTGART",
+      "name": "Stuttgart, Germany",
+      "country": "Germany",
+      "currency": "EUR",
+      "fx_per_usd": 0.92,
+      "labour_rates": { "operator": 38.0, "machinist": 48.0, "programmer": 62.0, "inspector": 44.0 },
+      "material_price_factor": 1.08,
+      "machine_rate_factor": 1.05,
+      "overhead_pct": 25,
+      "profit_pct": 12
+    },
+    {
+      "id": "PL-WROCLAW",
+      "name": "Wroclaw, Poland",
+      "country": "Poland",
+      "currency": "PLN",
+      "fx_per_usd": 3.95,
+      "labour_rates": { "operator": 14.0, "machinist": 19.0, "programmer": 27.0, "inspector": 17.0 },
+      "material_price_factor": 1.06,
+      "machine_rate_factor": 0.8,
+      "overhead_pct": 20,
+      "profit_pct": 12
+    }
+  ]
+}

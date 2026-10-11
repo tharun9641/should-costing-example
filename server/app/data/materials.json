@@ -1,0 +1,107 @@
+{
+  "_meta": {
+    "description": "Indicative base material prices (USD/kg, bar/plate stock, global average). Location factors are applied on top.",
+    "updated": "2026-10-01"
+  },
+  "materials": [
+    {
+      "id": "AL6061",
+      "name": "Aluminium 6061-T6",
+      "category": "aluminium",
+      "density_g_cm3": 2.70,
+      "price_usd_per_kg": 4.2,
+      "machinability": 1.0,
+      "aliases": ["6061", "AL6061", "AL 6061", "ALUMINIUM 6061", "ALUMINUM 6061", "AA6061", "6061-T6"]
+    },
+    {
+      "id": "AL7075",
+      "name": "Aluminium 7075-T6",
+      "category": "aluminium",
+      "density_g_cm3": 2.81,
+      "price_usd_per_kg": 7.5,
+      "machinability": 0.9,
+      "aliases": ["7075", "AL7075", "AL 7075", "ALUMINIUM 7075", "ALUMINUM 7075", "7075-T6"]
+    },
+    {
+      "id": "SS304",
+      "name": "Stainless Steel 304",
+      "category": "stainless",
+      "density_g_cm3": 8.00,
+      "price_usd_per_kg": 4.0,
+      "machinability": 0.35,
+      "aliases": ["SS304", "SS 304", "AISI 304", "304 STAINLESS", "1.4301", "SUS304"]
+    },
+    {
+      "id": "SS316",
+      "name": "Stainless Steel 316",
+      "category": "stainless",
+      "density_g_cm3": 8.00,
+      "price_usd_per_kg": 5.5,
+      "machinability": 0.3,
+      "aliases": ["SS316", "SS 316", "AISI 316", "316L", "316 STAINLESS", "1.4404", "SUS316"]
+    },
+    {
+      "id": "MS1018",
+      "name": "Mild Steel (1018 / S235)",
+      "category": "steel",
+      "density_g_cm3": 7.87,
+      "price_usd_per_kg": 1.2,
+      "machinability": 0.6,
+      "aliases": ["1018", "AISI 1018", "MILD STEEL", "S235", "S275", "EN3", "C15", "CRCA"]
+    },
+    {
+      "id": "AISI4140",
+      "name": "Alloy Steel 4140",
+      "category": "steel",
+      "density_g_cm3": 7.85,
+      "price_usd_per_kg": 2.2,
+      "machinability": 0.5,
+      "aliases": ["4140", "AISI 4140", "42CRMO4", "EN19", "SCM440"]
+    },
+    {
+      "id": "BRASS360",
+      "name": "Brass C360",
+      "category": "copper",
+      "density_g_cm3": 8.50,
+      "price_usd_per_kg": 9.0,
+      "machinability": 1.2,
+      "aliases": ["C360", "BRASS", "CZ121", "C36000"]
+    },
+    {
+      "id": "TI64",
+      "name": "Titanium Ti-6Al-4V",
+      "category": "titanium",
+      "density_g_cm3": 4.43,
+      "price_usd_per_kg": 35.0,
+      "machinability": 0.15,
+      "aliases": ["TI-6AL-4V", "TI6AL4V", "TI 6-4", "GRADE 5 TITANIUM", "TITANIUM"]
+    },
+    {
+      "id": "POM",
+      "name": "Acetal (POM / Delrin)",
+      "category": "plastic",
+      "density_g_cm3": 1.41,
+      "price_usd_per_kg": 6.0,
+      "machinability": 1.5,
+      "aliases": ["POM", "DELRIN", "ACETAL"]
+    },
+    {
+      "id": "ABS",
+      "name": "ABS",
+      "category": "plastic",
+      "density_g_cm3": 1.05,
+      "price_usd_per_kg": 3.5,
+      "machinability": 1.5,
+      "aliases": ["ABS"]
+    },
+    {
+      "id": "PA6",
+      "name": "Nylon 6 (PA6)",
+      "category": "plastic",
+      "density_g_cm3": 1.14,
+      "price_usd_per_kg": 5.0,
+      "machinability": 1.3,
+      "aliases": ["PA6", "NYLON", "POLYAMIDE"]
+    }
+  ]
+}

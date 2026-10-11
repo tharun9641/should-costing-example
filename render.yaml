@@ -1,0 +1,16 @@
+# Render blueprint for the FastAPI backend (the React frontend is hosted on Vercel).
+services:
+  - type: web
+    name: should-costing-api
+    runtime: python
+    plan: free
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      # Set to the frontend's URL, e.g. https://should-costing.vercel.app
+      - key: SC_CORS_ORIGINS
+        sync: false
