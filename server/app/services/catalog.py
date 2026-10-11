@@ -184,9 +184,18 @@ def labour_rate(location_id: str, skill: str = "machinist") -> LabourRate:
 def machine_rate(machine_id: str, location_id: str) -> MachineRate:
     m = get_machine(machine_id)
     loc = get_location(location_id)
-    if override := loc.machine_rate_overrides.get(m.id):
+    inputs = loc.machine_cost_inputs.get(m.id)
+    build_up = inputs.build_up() if inputs else None
+    if build_up:
+        method = "build_up"
+        usd = sum(build_up.values()) / loc.fx_per_usd
+        dated = [i.as_of for i in (getattr(inputs, k) for k in type(inputs).model_fields) if i.as_of]
+        source, as_of = "Build-up: depreciation + power + maintenance + tooling + floor space", max(dated, default=None)
+    elif override := loc.machine_rate_overrides.get(m.id):
+        method = "override"
         usd, source, as_of = override.rate_usd_per_hour, override.source, override.as_of
     else:
+        method = "factor"
         usd = m.hourly_rate_usd * loc.machine_rate_factor
         source = f"{m.source}; × {loc.name} machine factor {loc.machine_rate_factor:g}"
         as_of = m.as_of
@@ -194,6 +203,9 @@ def machine_rate(machine_id: str, location_id: str) -> MachineRate:
         machine_id=m.id,
         machine_name=m.name,
         location_id=loc.id,
+        method=method,
+        build_up_local={k: round(v, 2) for k, v in build_up.items()} if build_up else None,
+        missing_inputs=inputs.missing() if inputs else [],
         rate_usd_per_hour=round(usd, 4),
         rate_local_per_hour=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,

@@ -182,3 +182,34 @@ def test_labour_rate_is_base_wage_times_burden(client, tmp_path, monkeypatch):
                                          "source": "test", "as_of": "2026-10-12"}}
     loc.pop("labour_inputs")
     assert Location(**loc).labour_rates == {"machinist": pytest.approx(1.3)}
+
+
+# ---------- Machine rate build-up ----------
+
+def _inputs(**over):
+    base = dict(purchase_price=2_400_000, life_years=15, hours_per_year=2400, power_kw=10,
+                electricity_price_per_kwh=7.5, annual_maintenance_pct=5, tooling_per_hour=50,
+                floor_space_per_hour=20)
+    base.update(over)
+    return {k: {"value": v, "source": "test", "as_of": "2026-10-12"} for k, v in base.items() if v is not None}
+
+
+def test_complete_inputs_set_the_machine_rate(monkeypatch):
+    loc = catalog.locations()["IN-CHENNAI"].model_copy(deep=True)
+    from app.schemas import MachineCostInputs
+
+    loc.machine_cost_inputs["LASER_CUTTER"] = MachineCostInputs(**_inputs())
+    monkeypatch.setattr(catalog, "locations", lambda: {"IN-CHENNAI": loc})
+    r = catalog.machine_rate("LASER_CUTTER", "IN-CHENNAI")
+    expected = {"depreciation": 2_400_000 / (15 * 2400), "power": 75.0,
+                "maintenance": 2_400_000 * 0.05 / 2400, "tooling": 50.0, "floor_space": 20.0}
+    assert r.method == "build_up" and r.missing_inputs == []
+    assert r.build_up_local == pytest.approx(expected, abs=0.01)
+    assert r.rate_local_per_hour == pytest.approx(sum(expected.values()), abs=0.01)
+
+
+def test_incomplete_inputs_keep_the_existing_rate():
+    r = catalog.machine_rate("LASER_CUTTER", "IN-CHENNAI")
+    assert r.method == "factor" and r.rate_usd_per_hour == pytest.approx(85 * 0.55)
+    assert "power_kw" in r.missing_inputs and "purchase_price" not in r.missing_inputs
+    assert catalog.machine_rate("CNC_MILL_3AX", "IN-CHENNAI").method == "override"

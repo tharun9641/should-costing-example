@@ -17,6 +17,40 @@ class MachineRateOverride(BaseModel):
     as_of: str
 
 
+class CostInput(BaseModel):
+    value: float
+    source: str
+    as_of: str | None = None
+
+
+class MachineCostInputs(BaseModel):
+    """Inputs for an auditable machine-hour rate; money values in the location's currency."""
+    purchase_price: CostInput | None = None
+    life_years: CostInput | None = None
+    hours_per_year: CostInput | None = None
+    power_kw: CostInput | None = Field(None, description="Average electrical draw while cutting")
+    electricity_price_per_kwh: CostInput | None = None
+    annual_maintenance_pct: CostInput | None = Field(None, description="% of purchase price per year")
+    tooling_per_hour: CostInput | None = None
+    floor_space_per_hour: CostInput | None = None
+
+    def missing(self) -> list[str]:
+        return [k for k in type(self).model_fields if getattr(self, k) is None]
+
+    def build_up(self) -> dict[str, float] | None:
+        """Hourly cost components (local currency), or None while any input is missing."""
+        if self.missing():
+            return None
+        v = {k: getattr(self, k).value for k in type(self).model_fields}
+        return {
+            "depreciation": v["purchase_price"] / (v["life_years"] * v["hours_per_year"]),
+            "power": v["power_kw"] * v["electricity_price_per_kwh"],
+            "maintenance": v["purchase_price"] * v["annual_maintenance_pct"] / 100 / v["hours_per_year"],
+            "tooling": v["tooling_per_hour"],
+            "floor_space": v["floor_space_per_hour"],
+        }
+
+
 class LabourInput(BaseModel):
     base_wage_usd_per_hour: float
     burden_factor: float = Field(description="Employer cost per wage unit: benefits, social charges, leave")
@@ -36,6 +70,9 @@ class Location(BaseModel):
     machine_rate_factor: float
     machine_rate_overrides: dict[str, MachineRateOverride] = Field(
         {}, description="Per-machine hourly rates that replace base rate × machine_rate_factor"
+    )
+    machine_cost_inputs: dict[str, MachineCostInputs] = Field(
+        {}, description="Per-machine build-up inputs; when complete they set the rate"
     )
     overhead_pct: float
     profit_pct: float
@@ -135,6 +172,9 @@ class MachineRate(BaseModel):
     machine_id: str
     machine_name: str
     location_id: str
+    method: Literal["build_up", "override", "factor"] = "factor"
+    build_up_local: dict[str, float] | None = Field(None, description="Hourly components, local currency")
+    missing_inputs: list[str] = []
     rate_usd_per_hour: float
     rate_local_per_hour: float
     currency: str

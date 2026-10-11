@@ -25,6 +25,105 @@
         "CNC_MILL_5AX": { "rate_usd_per_hour": 24.9, "source": "Set so the all-in hour is mid-range of published Indian 5-axis billing rates, INR 3,240-3,900/h", "as_of": "2026-10-11" },
         "CNC_LATHE": { "rate_usd_per_hour": 1.8, "source": "Published Indian CNC turning-centre billing rate INR 200-260/h (mid INR 230) applied to the machine share only; the all-in hour cannot reach that range because operator labour at this location's rate is already above it", "as_of": "2026-10-11" }
       },
+      "machine_cost_inputs": {
+        "SWISS_LATHE": {
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "SURFACE_GRINDER": {
+          "purchase_price": {
+            "value": 700000,
+            "source": "Midpoint of most IndiaMART listings for 600 x 300 mm hydraulic surface grinders, INR 5.4-8.6 lakh (high end 10.25 lakh)",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "WIRE_EDM": {
+          "purchase_price": {
+            "value": 1065000,
+            "source": "Midpoint of IndiaMART/Aajjo listings for CNC wire-cut EDM, INR 5-16.3 lakh",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "LASER_CUTTER": {
+          "purchase_price": {
+            "value": 2400000,
+            "source": "IndiaMART listing, Premier Machine Tools (Chennai): 3 kW fibre laser cutter INR 24 lakh; other 3 kW listings INR 19.5-32 lakh, ex-GST",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "PRESS_BRAKE": {
+          "purchase_price": {
+            "value": 2100000,
+            "source": "Midpoint of IndiaMART listings for 100 t CNC hydraulic press brakes, INR 17-25 lakh, ex-GST",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "DRILL_TAP": {
+          "purchase_price": {
+            "value": 185000,
+            "source": "IndiaMART listing, Kishor Machine Tools: radial drilling machine INR 1.85 lakh",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.5,
+            "source": "TNERC Tariff Order No. 6 of 2025 (effective 2025-07-01), HT I industrial energy charge INR 7.50/kWh, as reported from the order's tariff table; excludes the INR 608/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        }
+      },
       "overhead_pct": 18,
       "profit_pct": 12
     },
@@ -48,6 +147,105 @@
         "CNC_MILL_3AX": { "rate_usd_per_hour": 4.25, "source": "Set so the all-in hour (machine + operator + overhead + profit) is mid-range of published Indian 3-axis VMC billing rates, INR 750-1,040/h", "as_of": "2026-10-11" },
         "CNC_MILL_5AX": { "rate_usd_per_hour": 24.6, "source": "Set so the all-in hour is mid-range of published Indian 5-axis billing rates, INR 3,240-3,900/h", "as_of": "2026-10-11" },
         "CNC_LATHE": { "rate_usd_per_hour": 1.8, "source": "Published Indian CNC turning-centre billing rate INR 200-260/h (mid INR 230) applied to the machine share only; the all-in hour cannot reach that range because operator labour at this location's rate is already above it", "as_of": "2026-10-11" }
+      },
+      "machine_cost_inputs": {
+        "SWISS_LATHE": {
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "SURFACE_GRINDER": {
+          "purchase_price": {
+            "value": 700000,
+            "source": "Midpoint of most IndiaMART listings for 600 x 300 mm hydraulic surface grinders, INR 5.4-8.6 lakh (high end 10.25 lakh)",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "WIRE_EDM": {
+          "purchase_price": {
+            "value": 1065000,
+            "source": "Midpoint of IndiaMART/Aajjo listings for CNC wire-cut EDM, INR 5-16.3 lakh",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "LASER_CUTTER": {
+          "purchase_price": {
+            "value": 2400000,
+            "source": "IndiaMART listing, Premier Machine Tools (Chennai): 3 kW fibre laser cutter INR 24 lakh; other 3 kW listings INR 19.5-32 lakh, ex-GST",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "PRESS_BRAKE": {
+          "purchase_price": {
+            "value": 2100000,
+            "source": "Midpoint of IndiaMART listings for 100 t CNC hydraulic press brakes, INR 17-25 lakh, ex-GST",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        },
+        "DRILL_TAP": {
+          "purchase_price": {
+            "value": 185000,
+            "source": "IndiaMART listing, Kishor Machine Tools: radial drilling machine INR 1.85 lakh",
+            "as_of": "2026-10-12"
+          },
+          "life_years": {
+            "value": 15,
+            "source": "Companies Act 2013, Schedule II Part C: useful life of plant and machinery (general) 15 years",
+            "as_of": "2026-10-12"
+          },
+          "electricity_price_per_kwh": {
+            "value": 7.48,
+            "source": "MERC MYT order, Case No. 217 of 2024 (MSEDCL), HT I(A) industry energy charge FY 2025-26 INR 7.48/kVAh (about per kWh at unity power factor); excludes the INR 555/kVA/month demand charge",
+            "as_of": "2026-10-12"
+          }
+        }
       },
       "overhead_pct": 18,
       "profit_pct": 12

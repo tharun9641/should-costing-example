@@ -36,6 +36,18 @@ function RateTable({ title, rows, nameKey, unit }) {
                     {r.source}
                     {r.as_of && ` · as of ${r.as_of}`}
                   </div>
+                  {r.build_up_local && (
+                    <div className="muted small">
+                      {Object.entries(r.build_up_local)
+                        .map(([k, v]) => `${k.replace('_', ' ')} ${money(v, r.currency)}`)
+                        .join(' + ')}
+                    </div>
+                  )}
+                  {r.missing_inputs?.length > 0 && (
+                    <div className="muted small">
+                      Build-up incomplete, using {r.method}: missing {r.missing_inputs.join(', ').replaceAll('_', ' ')}
+                    </div>
+                  )}
                 </td>
                 <td className="num">
                   {money(r.price_local_per_kg ?? r.rate_local_per_hour, r.currency)}
