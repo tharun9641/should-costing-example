@@ -27,9 +27,12 @@ class NotFoundError(KeyError):
 
 
 def _load(name: str, key: str) -> list[dict]:
+    """Entries of a data file; `source` / `as_of` default to the file's _meta."""
     path = Path(settings.data_dir) / name
     with path.open() as f:
-        return json.load(f)[key]
+        data = json.load(f)
+    defaults = {k: data["_meta"][k] for k in ("source", "as_of") if k in data.get("_meta", {})}
+    return [{**defaults, **d} for d in data[key]]
 
 
 @lru_cache
@@ -84,6 +87,8 @@ def material_rate(material_id: str, location_id: str) -> MaterialRate:
         price_usd_per_kg=round(usd, 4),
         price_local_per_kg=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,
+        source=f"{mat.source}; × {loc.name} material factor {loc.material_price_factor:g}",
+        as_of=mat.as_of,
     )
 
 
@@ -100,13 +105,20 @@ def labour_rate(location_id: str, skill: str = "machinist") -> LabourRate:
         rate_usd_per_hour=usd,
         rate_local_per_hour=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,
+        source=loc.rate_source,
+        as_of=loc.rate_as_of,
     )
 
 
 def machine_rate(machine_id: str, location_id: str) -> MachineRate:
     m = get_machine(machine_id)
     loc = get_location(location_id)
-    usd = m.hourly_rate_usd * loc.machine_rate_factor
+    if override := loc.machine_rate_overrides.get(m.id):
+        usd, source, as_of = override.rate_usd_per_hour, override.source, override.as_of
+    else:
+        usd = m.hourly_rate_usd * loc.machine_rate_factor
+        source = f"{m.source}; × {loc.name} machine factor {loc.machine_rate_factor:g}"
+        as_of = m.as_of
     return MachineRate(
         machine_id=m.id,
         machine_name=m.name,
@@ -114,6 +126,8 @@ def machine_rate(machine_id: str, location_id: str) -> MachineRate:
         rate_usd_per_hour=round(usd, 4),
         rate_local_per_hour=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,
+        source=source,
+        as_of=as_of,
     )
 
 

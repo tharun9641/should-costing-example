@@ -20,7 +20,13 @@ function RateTable({ title, rows, nameKey, unit }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r[nameKey]}>
-                <td className={nameKey === 'skill' ? 'cap' : ''}>{r[nameKey]}</td>
+                <td>
+                  <span className={nameKey === 'skill' ? 'cap' : ''}>{r[nameKey]}</span>
+                  <div className="muted small">
+                    {r.source}
+                    {r.as_of && ` · as of ${r.as_of}`}
+                  </div>
+                </td>
                 <td className="num">
                   {money(r.price_local_per_kg ?? r.rate_local_per_hour, r.currency)}
                   <span className="muted">{unit}</span>
@@ -74,7 +80,8 @@ export default function RatesView({ locations, loading }) {
         {loc && (
           <div className="rate-facts">
             <span>
-              Currency <b>{loc.currency}</b> · {loc.fx_per_usd} per USD
+              Currency <b>{loc.currency}</b> · {loc.fx_per_usd} per USD ({loc.fx_source}
+              {loc.fx_as_of && `, ${loc.fx_as_of}`})
             </span>
             <span>
               Overhead <b>{loc.overhead_pct}%</b>

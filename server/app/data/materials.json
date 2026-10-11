@@ -1,7 +1,9 @@
 {
   "_meta": {
-    "description": "Indicative base material prices (USD/kg, bar/plate stock, global average). Location factors are applied on top.",
-    "updated": "2026-10-01"
+    "description": "Indicative base material prices (USD/kg, bar/plate stock, global average). Location factors are applied on top. Prices are indicative, not quotes: AL6061 at 4.2 USD/kg comes to about INR 415/kg in India at 96.8 INR/USD (INR 360/kg at the old 84.0); Indian seller listings run INR 254-380/kg.",
+    "updated": "2026-10-01",
+    "source": "Indicative seed data, global average bar/plate stock (unverified)",
+    "as_of": "2026-10-01"
   },
   "materials": [
     {

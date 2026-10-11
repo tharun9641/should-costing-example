@@ -1,7 +1,9 @@
 {
   "_meta": {
     "description": "Machine catalogue. hourly_rate_usd is the machine burden (depreciation, power, tooling, floor space) at a US baseline; location machine_rate_factor is applied on top. mrr_cm3_per_min is the roughing material-removal rate at machinability 1.0.",
-    "updated": "2026-10-01"
+    "updated": "2026-10-01",
+    "source": "Indicative US-baseline machine burden (unverified)",
+    "as_of": "2026-10-01"
   },
   "machines": [
     {

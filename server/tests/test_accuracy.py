@@ -164,3 +164,31 @@ def test_mesh_units_inch(client):
 def test_mesh_units_rejects_unknown(client, shaft_stl):
     r = client.post("/api/analyze", files={"file": ("s.stl", shaft_stl)}, data={"units": "ft"})
     assert r.status_code == 422
+
+
+# ---------- Rate data ----------
+
+def _all_in_inr_per_hour(client, machine_id, location_id="IN-CHENNAI"):
+    """Machine + operator, plus overhead and profit, for one machine hour."""
+    loc = next(l for l in client.get("/api/locations").json() if l["id"] == location_id)
+    m = next(m for m in client.get("/api/machines").json() if m["id"] == machine_id)
+    rate = client.get("/api/rates/machine", params={"machine_id": machine_id, "location_id": location_id}).json()
+    conversion = rate["rate_usd_per_hour"] + m["operator_ratio"] * loc["labour_rates"][m["operator_skill"]]
+    return conversion * (1 + loc["overhead_pct"] / 100) * (1 + loc["profit_pct"] / 100) * loc["fx_per_usd"]
+
+
+@pytest.mark.parametrize("location_id", ["IN-CHENNAI", "IN-PUNE"])
+@pytest.mark.parametrize("machine_id, lo, hi", [("CNC_MILL_3AX", 750, 1040), ("CNC_MILL_5AX", 3240, 3900)])
+def test_india_machine_hour_within_published_range(client, location_id, machine_id, lo, hi):
+    assert lo <= _all_in_inr_per_hour(client, machine_id, location_id) <= hi
+
+
+def test_inr_fx_and_rate_provenance(client):
+    body = client.get("/api/rates/IN-CHENNAI").json()
+    assert body["location"]["fx_per_usd"] == 96.8
+    for kind in ("materials", "labour", "machines"):
+        assert all(r["source"] and r["as_of"] for r in body[kind]), kind
+    lathe = next(r for r in body["machines"] if r["machine_id"] == "CNC_LATHE")
+    assert "turning" in lathe["source"]
+    others = [l for l in client.get("/api/locations").json() if l["currency"] not in ("INR", "USD")]
+    assert all("Unverified" in l["fx_source"] for l in others)

@@ -27,7 +27,7 @@ def test_material_rate_is_location_adjusted(client):
 def test_labour_rate(client):
     r = client.get("/api/rates/labour", params={"location_id": "in-chennai", "skill": "operator"})
     assert r.status_code == 200
-    assert r.json()["rate_local_per_hour"] == pytest.approx(3.5 * 84.0)
+    assert r.json()["rate_local_per_hour"] == pytest.approx(3.5 * 96.8)
 
 
 def test_unknown_location_is_404(client):

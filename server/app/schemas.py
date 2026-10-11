@@ -5,6 +5,12 @@ from pydantic import BaseModel, Field
 
 # ---------- Catalog ----------
 
+class MachineRateOverride(BaseModel):
+    rate_usd_per_hour: float
+    source: str
+    as_of: str
+
+
 class Location(BaseModel):
     id: str
     name: str
@@ -14,8 +20,15 @@ class Location(BaseModel):
     labour_rates: dict[str, float]
     material_price_factor: float
     machine_rate_factor: float
+    machine_rate_overrides: dict[str, MachineRateOverride] = Field(
+        {}, description="Per-machine hourly rates that replace base rate × machine_rate_factor"
+    )
     overhead_pct: float
     profit_pct: float
+    fx_source: str = "Unverified"
+    fx_as_of: str | None = None
+    rate_source: str = "Unverified"
+    rate_as_of: str | None = None
 
 
 class Material(BaseModel):
@@ -26,6 +39,8 @@ class Material(BaseModel):
     price_usd_per_kg: float
     machinability: float
     aliases: list[str] = []
+    source: str = "Unverified"
+    as_of: str | None = None
 
 
 class Machine(BaseModel):
@@ -42,6 +57,8 @@ class Machine(BaseModel):
     cut_mm_per_min: float | None = None
     seconds_per_bend: float | None = None
     seconds_per_hole: float | None = None
+    source: str = "Unverified"
+    as_of: str | None = None
 
 
 class MaterialRate(BaseModel):
@@ -51,6 +68,8 @@ class MaterialRate(BaseModel):
     price_usd_per_kg: float
     price_local_per_kg: float
     currency: str
+    source: str
+    as_of: str | None
 
 
 class LabourRate(BaseModel):
@@ -59,6 +78,8 @@ class LabourRate(BaseModel):
     rate_usd_per_hour: float
     rate_local_per_hour: float
     currency: str
+    source: str
+    as_of: str | None
 
 
 class MachineRate(BaseModel):
@@ -68,6 +89,8 @@ class MachineRate(BaseModel):
     rate_usd_per_hour: float
     rate_local_per_hour: float
     currency: str
+    source: str
+    as_of: str | None
 
 
 # ---------- Part analysis ----------
