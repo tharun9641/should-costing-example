@@ -56,6 +56,8 @@ def _sheet_flat_dims(f: PartFeatures) -> tuple[float, float, float]:
     t = a
     if f.surface_area_cm2 and f.volume_cm3:
         t = 2 * vol / (f.surface_area_cm2 * 100)
+    if t <= 0:
+        raise ValueError("Sheet thickness is zero — provide length_mm, width_mm and height_mm.")
     flat_area = vol / t
     # Keep the blank's aspect ratio close to the envelope's two larger dims.
     ratio = c / b if b else 1
@@ -123,6 +125,11 @@ def estimate(
     if not f.bbox_mm:
         raise ValueError(
             "Part envelope unknown — provide length_mm, width_mm and height_mm."
+        )
+    if min(f.bbox_mm) <= 0:
+        raise ValueError(
+            f"Part envelope {f.bbox_mm} mm has a zero dimension — "
+            "provide length_mm, width_mm and height_mm."
         )
 
     assumptions: list[str] = []

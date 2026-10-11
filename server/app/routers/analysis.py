@@ -126,3 +126,8 @@ async def estimate(
         return cost_engine.estimate(f, routing, catalog.get_material(f.material_id), loc, quantity)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
+    except Exception as e:  # never a bare 500: the user can usually fix it with overrides
+        raise HTTPException(
+            422, f"Could not cost this part ({type(e).__name__}: {e}). Check the envelope "
+            "and shape, or pass length_mm, width_mm, height_mm and shape overrides."
+        ) from e

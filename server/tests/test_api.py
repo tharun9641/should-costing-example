@@ -185,3 +185,34 @@ def test_estimate_scanned_pdf_needs_dims(client):
     )
     assert r.status_code == 200, r.text
     assert r.json()["routing"][0]["machine_id"] == "CNC_LATHE"
+
+
+# ---------- Robustness ----------
+
+def test_zero_envelope_dimension_is_rejected_before_costing():
+    """[0, 25, 120] (the old STEP reading of a cylinder) used to divide by zero."""
+    from app.schemas import PartFeatures
+    from app.services import cost_engine, machine_selector
+
+    f = PartFeatures(source="cad", file_name="c.step", bbox_mm=[0, 25, 120], shape="sheet")
+    with pytest.raises(ValueError, match="zero dimension"):
+        cost_engine.estimate(
+            f, machine_selector.select_machines(f), catalog.get_material("AL6061"),
+            catalog.get_location("IN-CHENNAI"), 100,
+        )
+
+
+def test_unexpected_costing_error_is_422(client, block_with_holes_stl, monkeypatch):
+    from app.services import cost_engine
+
+    def boom(*_):
+        raise ZeroDivisionError("division by zero")
+
+    monkeypatch.setattr(cost_engine, "estimate", boom)
+    r = client.post(
+        "/api/estimate",
+        files={"file": ("block.stl", block_with_holes_stl)},
+        data={"location_id": "IN-CHENNAI", "material_id": "AL6061"},
+    )
+    assert r.status_code == 422
+    assert "ZeroDivisionError" in r.json()["detail"]
