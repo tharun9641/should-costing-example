@@ -198,6 +198,8 @@ def estimate(
     assumptions.append(
         f"Overhead {loc.overhead_pct:g}% of conversion cost, profit {loc.profit_pct:g}%."
     )
+    if mrate.assumption:
+        assumptions.append(mrate.assumption)
     fallbacks = []
     if loc.fx_status == "fallback":
         fallbacks.append(f"exchange rate {loc.currency}/USD {loc.fx_per_usd:g}")

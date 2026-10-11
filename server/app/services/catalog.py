@@ -93,10 +93,59 @@ def get_machine(machine_id: str) -> Machine:
         raise NotFoundError(f"Unknown machine '{machine_id}'") from None
 
 
+INDEX_CLAMP = (0.7, 1.3)  # a bad index data point can move a stored price by at most ±30%
+STEEL_INDEX_NOTE = (
+    "US producer price index for iron and steel (BLS WPU101 via FRED): an index of US "
+    "prices, not a price; US steel can diverge from India and China because of tariffs"
+)
+
+
+def _market_price(mat: Material) -> tuple[float, str, str | None, str, str | None]:
+    """(USD/kg before location factor, source, as_of, status, assumption)."""
+    p = mat.pricing
+    stored = (mat.price_usd_per_kg, mat.source, mat.as_of)
+
+    if p.method == "commodity":
+        quotes = {c: live.fred(live.COMMODITY_SERIES[c]) for c in p.basis}
+        if any(q is None for q in quotes.values()):
+            return (*stored, "fallback", None)
+        raw = sum(share * quotes[c].value / 1000 for c, share in p.basis.items())
+        as_of = min(q.as_of for q in quotes.values())
+        mix = " + ".join(f"{share:g} {c}" for c, share in p.basis.items())
+        status = "cached" if any(q.status == "cached" for q in quotes.values()) else "live"
+        return (raw * p.stock_markup,
+                f"IMF world price via FRED ({mix}, USD {raw:.3f}/kg) × stock markup {p.stock_markup:.3f}",
+                as_of, status, None)
+
+    if p.method == "indexed":
+        steel = live.fred(live.STEEL_INDEX_SERIES)
+        nickel = live.fred(live.COMMODITY_SERIES["nickel"]) if p.ni_share else None
+        if steel is None or (p.ni_share and nickel is None):
+            return (*stored, "fallback", None)
+        ratio = steel.value / p.steel_index_base
+        how = f"steel index {steel.value:g}/{p.steel_index_base:g}"
+        if p.ni_share:
+            ni_ratio = nickel.value / p.nickel_base_usd_per_t
+            ratio = (1 - p.ni_share) * ratio + p.ni_share * ni_ratio
+            how += f", blended {1 - p.ni_share:g}/{p.ni_share:g} with nickel {ni_ratio:.3f}"
+        lo, hi = INDEX_CLAMP
+        clamped = min(max(ratio, lo), hi)
+        assumption = None
+        if clamped != ratio:
+            assumption = (f"{mat.name}: index ratio {ratio:.3f} clamped to {clamped:g} "
+                          f"(limit {lo:g}-{hi:g}); check the index data.")
+        return (mat.price_usd_per_kg * clamped,
+                f"Stored price × {clamped:.3f} ({how}). {STEEL_INDEX_NOTE}",
+                steel.as_of, "indexed", assumption)
+
+    return (mat.price_usd_per_kg, "manual", mat.as_of, "manual", None)
+
+
 def material_rate(material_id: str, location_id: str) -> MaterialRate:
     mat = get_material(material_id)
     loc = get_location(location_id)
-    usd = mat.price_usd_per_kg * loc.material_price_factor
+    base_usd, source, as_of, status, assumption = _market_price(mat)
+    usd = base_usd * loc.material_price_factor
     return MaterialRate(
         material_id=mat.id,
         material_name=mat.name,
@@ -104,8 +153,10 @@ def material_rate(material_id: str, location_id: str) -> MaterialRate:
         price_usd_per_kg=round(usd, 4),
         price_local_per_kg=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,
-        source=f"{mat.source}; × {loc.name} material factor {loc.material_price_factor:g}",
-        as_of=mat.as_of,
+        source=f"{source}; × {loc.name} material factor {loc.material_price_factor:g}",
+        as_of=as_of,
+        status=status,
+        assumption=assumption,
     )
 
 

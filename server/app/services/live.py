@@ -9,6 +9,8 @@ per request). With nothing in memory it returns None and the caller uses the val
 stored in app/data (status "fallback"). SC_LIVE_RATES=off disables all fetching.
 """
 
+import csv
+import io
 import json
 import threading
 import time
@@ -21,8 +23,22 @@ TIMEOUT_S = 5
 FX_TTL_S = 12 * 3600
 FRED_TTL_S = 7 * 24 * 3600
 
+RETRY_AFTER_FAILURE_S = 300
 FX_URL = "https://api.frankfurter.dev/v2/rates?base=USD&quotes={quotes}"
 FX_SOURCE = "Frankfurter (central-bank reference rates)"
+FRED_URL = "https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
+
+# IMF monthly world prices (USD per metric tonne) and the BLS producer price index
+# for iron and steel (1982 = 100), all downloaded from FRED.
+COMMODITY_SERIES = {
+    "aluminium": "PALUMUSDM",
+    "copper": "PCOPPUSDM",
+    "zinc": "PZINCUSDM",
+    "lead": "PLEADUSDM",
+    "nickel": "PNICKUSDM",
+}
+STEEL_INDEX_SERIES = "WPU101"
+FRED_SERIES = [*COMMODITY_SERIES.values(), STEEL_INDEX_SERIES]
 
 
 def enabled() -> bool:
@@ -51,6 +67,7 @@ class Feed:
         self.data: dict = {}           # key -> payload returned by fetch
         self.fetched_at: float | None = None
         self.error: str | None = None
+        self._retry_at = 0.0
         self._lock = threading.Lock()
         self._refreshing = False
 
@@ -65,12 +82,13 @@ class Feed:
                 self.data, self.fetched_at, self.error = data, time.time(), None
         except Exception as e:  # network, HTTP or parse error: keep serving the old data
             self.error = f"{type(e).__name__}: {e}"
+            self._retry_at = time.time() + RETRY_AFTER_FAILURE_S  # don't hammer a source that is down
         finally:
             self._refreshing = False
 
     def ensure_fresh(self) -> None:
         """Start a background refresh if stale; never waits for it."""
-        if not enabled() or not self._stale():
+        if not enabled() or not self._stale() or time.time() < self._retry_at:
             return
         with self._lock:
             if self._refreshing:
@@ -113,7 +131,34 @@ def fx(currency: str) -> Quote | None:
     return Quote(hit[0], hit[1], fx_feed.status(), FX_SOURCE)
 
 
-FEEDS = [fx_feed]
+# ---------- FRED: metal prices and the steel index ----------
+
+def _parse_fred_csv(body: bytes) -> list[tuple[str, float]]:
+    """[(YYYY-MM-DD, value), ...] oldest first; missing observations ('.') skipped."""
+    rows = list(csv.reader(io.StringIO(body.decode("utf-8"))))
+    out = [(d, float(v)) for d, v in rows[1:] if v not in ("", ".")]
+    if not out:
+        raise ValueError("FRED CSV has no observations")
+    return out
+
+
+def _fetch_fred() -> dict[str, list[tuple[str, float]]]:
+    return {s: _parse_fred_csv(_http_get(FRED_URL.format(series=s))) for s in FRED_SERIES}
+
+
+fred_feed = Feed(FRED_TTL_S, _fetch_fred, "FRED")
+
+
+def fred(series: str) -> Quote | None:
+    """Latest observation of a FRED series, or None when no live value is available."""
+    history = fred_feed.payload(series)
+    if not history:
+        return None
+    date, value = history[-1]
+    return Quote(value, date[:7], fred_feed.status(), f"FRED {series}")
+
+
+FEEDS = [fx_feed, fred_feed]
 
 
 def warm() -> None:

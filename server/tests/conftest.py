@@ -172,6 +172,7 @@ def live_feeds(monkeypatch):
     def reset():
         for feed in live.FEEDS:
             feed.data, feed.fetched_at, feed.error, feed._refreshing = {}, None, None, False
+            feed._retry_at = 0.0
 
     reset()
     yield live

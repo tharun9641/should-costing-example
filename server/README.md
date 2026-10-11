@@ -70,6 +70,11 @@ in the API carries `source`, `as_of` and `status` (`live`, `cached`, `fallback`,
 | Data | Source | Cache |
 |---|---|---|
 | Exchange rates | [Frankfurter](https://api.frankfurter.dev/v2/rates?base=USD) | 12 h |
+| Aluminium, copper, zinc, lead, nickel | IMF monthly world prices on FRED (`PALUMUSDM`, `PCOPPUSDM`, `PZINCUSDM`, `PLEADUSDM`, `PNICKUSDM`), about 3 months behind | 7 days |
+| Carbon / alloy / stainless steel | US PPI iron & steel, BLS `WPU101` on FRED (index, status `indexed`; stainless blended with nickel; ratio clamped 0.7-1.3) | 7 days |
+
+Each material's `pricing` block in `materials.json` says how it follows the market:
+`commodity` (metal price × `stock_markup`), `indexed` (stored price × index ratio) or `manual`.
 
 `SC_LIVE_RATES=off` turns all fetching off (the test suite runs this way, with recorded
 responses in `tests/fixtures/live`).

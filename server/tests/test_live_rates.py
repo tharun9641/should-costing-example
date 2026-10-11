@@ -77,3 +77,92 @@ def test_slow_fetch_never_delays_a_lookup(live_feeds, monkeypatch):
     assert time.perf_counter() - t0 < 0.5
     assert loc.fx_status == "fallback"
     release.set()
+
+
+# ---------- Metal prices ----------
+
+STORED = {m.id: m.price_usd_per_kg for m in catalog.materials().values()}
+
+
+def usd_per_kg(material_id):
+    """Material price before the location factor (US-MICHIGAN factor is 1.1)."""
+    r = catalog.material_rate(material_id, "US-MICHIGAN")
+    return r.price_usd_per_kg / 1.1, r
+
+
+def push_observation(live, series, factor, month="2026-09-01"):
+    history = live.fred_feed.data[series]
+    history.append((month, history[-1][1] * factor))
+
+
+def test_materials_off_fall_back_or_stay_manual():
+    assert usd_per_kg("AL6061")[1].status == "fallback"
+    assert usd_per_kg("SS304")[1].status == "fallback"
+    _, ti = usd_per_kg("TI64")
+    assert (ti.status, ti.source.split(";")[0]) == ("manual", "manual")
+
+
+def test_day_one_prices_unchanged_and_labelled(live_feeds):
+    live_feeds.fred_feed.refresh()
+    for mid, status in [("AL6061", "live"), ("AL7075", "live"), ("BRASS360", "live"),
+                        ("MS1018", "indexed"), ("AISI4140", "indexed"),
+                        ("SS304", "indexed"), ("SS316", "indexed"), ("PA6", "manual")]:
+        price, rate = usd_per_kg(mid)
+        assert price == pytest.approx(STORED[mid], rel=1e-5), mid
+        assert rate.status == status, mid
+    _, al = usd_per_kg("AL6061")
+    assert "FRED" in al.source and al.as_of == "2026-07"
+    _, ms = usd_per_kg("MS1018")
+    assert "not a price" in ms.source and "tariffs" in ms.source
+
+
+def test_commodity_price_follows_the_metal(live_feeds):
+    live_feeds.fred_feed.refresh()
+    push_observation(live_feeds, "PALUMUSDM", 1.10)
+    price, rate = usd_per_kg("AL6061")
+    assert price == pytest.approx(4.2 * 1.10, rel=1e-5)
+    assert rate.as_of == "2026-09"
+
+
+def test_stainless_blends_steel_index_with_nickel(live_feeds):
+    live_feeds.fred_feed.refresh()
+    push_observation(live_feeds, "PNICKUSDM", 1.20)
+    assert usd_per_kg("SS304")[0] == pytest.approx(4.0 * (0.70 + 0.30 * 1.20), rel=1e-4)
+    assert usd_per_kg("MS1018")[0] == pytest.approx(1.2, rel=1e-5)  # steel index unchanged
+
+
+def test_index_ratio_is_clamped_and_reported(client, live_feeds):
+    live_feeds.fred_feed.refresh()
+    live_feeds.fred_feed.data["WPU101"].append(("2026-09-01", 378.128 * 2))
+    price, rate = usd_per_kg("MS1018")
+    assert price == pytest.approx(1.2 * 1.3, rel=1e-6)
+    assert "clamped" in rate.assumption
+    from tests.conftest import mesh_bytes
+    import trimesh
+
+    r = client.post(
+        "/api/estimate",
+        files={"file": ("box.stl", mesh_bytes(trimesh.creation.box(extents=[100, 60, 40])))},
+        data={"location_id": "IN-CHENNAI", "material_id": "MS1018", "quantity": "10"},
+    )
+    assert any("clamped" in a for a in r.json()["assumptions"])
+
+
+def test_stainless_without_nickel_falls_back(live_feeds):
+    live_feeds.fred_feed.refresh()
+    del live_feeds.fred_feed.data["PNICKUSDM"]
+    price, rate = usd_per_kg("SS316")
+    assert (price, rate.status) == (pytest.approx(5.5), "fallback")
+
+
+def test_failed_fred_fetch_backs_off(live_feeds, monkeypatch):
+    def down(url):
+        raise OSError("unreachable")
+
+    monkeypatch.setattr(live_feeds, "_http_get", down)
+    live_feeds.fred_feed.refresh()
+    assert live_feeds.fred_feed.error
+    started = []
+    monkeypatch.setattr(live_feeds.threading, "Thread", lambda **kw: started.append(kw))
+    live_feeds.fred_feed.ensure_fresh()
+    assert started == []  # within the retry window: no new fetch

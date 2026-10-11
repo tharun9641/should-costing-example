@@ -38,6 +38,21 @@ class Location(BaseModel):
     rate_as_of: str | None = None
 
 
+class MaterialPricing(BaseModel):
+    """How a material's price follows the market (see services/catalog.material_rate)."""
+    method: Literal["commodity", "indexed", "manual"] = "manual"
+    # commodity: live price = Σ share × metal price × stock_markup
+    basis: dict[str, float] = Field({}, description="Commodity -> mass share")
+    stock_markup: float | None = Field(None, description="Raw metal -> bar/plate stock multiplier")
+    # indexed: stored price × (latest US steel PPI / steel_index_base), blended with nickel
+    steel_index_base: float | None = None
+    steel_index_base_month: str | None = None
+    ni_share: float | None = Field(None, description="Share of the price that follows nickel")
+    ni_share_note: str | None = None
+    nickel_base_usd_per_t: float | None = None
+    nickel_base_month: str | None = None
+
+
 class Material(BaseModel):
     id: str
     name: str
@@ -48,6 +63,7 @@ class Material(BaseModel):
     aliases: list[str] = []
     source: str = "Unverified"
     as_of: str | None = None
+    pricing: MaterialPricing = MaterialPricing()
 
 
 class Machine(BaseModel):
@@ -78,6 +94,7 @@ class MaterialRate(BaseModel):
     source: str
     as_of: str | None
     status: RateStatus = "manual"
+    assumption: str | None = Field(None, description="Added to an estimate's assumptions")
 
 
 class LabourRate(BaseModel):
