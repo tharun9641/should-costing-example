@@ -84,23 +84,31 @@ def _convex_hull(pts: np.ndarray) -> np.ndarray:
     return np.array(half(pts) + half(pts[::-1]))
 
 
-def _section_is_round(pts2d: np.ndarray) -> bool:
-    """Cross-section outline is a circle: hull area ≥ 95% of the circle through its
-    farthest point (a 12-gon is 95.5%, an octagon 90%, a hexagon 83%, a square 64%)."""
+def _section_kind(pts2d: np.ndarray) -> str | None:
+    """'round' if the cross-section outline is a circle (hull area ≥ 95% of the circle
+    through its farthest point: a 12-gon is 95.5%, an octagon 90%, a square 64%);
+    'hex' for a regular hexagon (bar stock); otherwise None."""
     hull = _convex_hull(pts2d)
     if len(hull) < 3:
-        return False
+        return None
     centre = (hull.min(axis=0) + hull.max(axis=0)) / 2
     r = float(np.linalg.norm(hull - centre, axis=1).max())
     x, y = hull[:, 0], hull[:, 1]
     area = 0.5 * abs(float(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1))))
-    return area >= 0.95 * math.pi * r * r
+    if area >= 0.95 * math.pi * r * r:
+        return "round"
+    sides = np.linalg.norm(hull - np.roll(hull, 1, axis=0), axis=1)
+    if len(hull) == 6 and np.ptp(sides) <= 0.02 * sides.mean():
+        return "hex"
+    return None
 
 
-def _mesh_is_round(mesh: trimesh.Trimesh) -> bool:
+def _turned_section(points: np.ndarray) -> str | None:
+    """'round' or 'hex' if the part's cross-section along some axis is one."""
     # shortcut: assumes the turning axis is a coordinate axis, as exported from CAD;
-    # use the principal inertia axes if arbitrarily rotated meshes show up.
-    return any(_section_is_round(np.delete(mesh.vertices, k, axis=1)) for k in range(3))
+    # use the principal inertia axes if arbitrarily rotated parts show up.
+    kinds = {_section_kind(np.delete(points, k, axis=1)) for k in range(3)}
+    return "round" if "round" in kinds else "hex" if "hex" in kinds else None
 
 
 def _round_envelope(bbox: list[float], diameters) -> bool:
@@ -113,19 +121,37 @@ def _round_envelope(bbox: list[float], diameters) -> bool:
 
 
 def _classify_solid(f: PartFeatures, bbox: list[float], volume_mm3: float | None,
-                    area_mm2: float, notes: list[str], round_section: bool) -> None:
-    """Shape (and assumed bends) from exact solid geometry; shared by mesh and B-rep."""
+                    area_mm2: float, notes: list[str], section: str | None,
+                    count_bends=None) -> None:
+    """Shape and bends from exact solid geometry; shared by mesh and B-rep.
+
+    `section` is 'round', 'hex' or None. Rule: round and regular-hex sections are
+    turned (hex parts are made from hex bar on a lathe); square bar and everything
+    else is milled. `count_bends(t)` counts bends from B-rep data when available.
+    """
     # Sheet test: a plate of thickness t has t ≈ 2V/A.
     if volume_mm3:
         t = 2 * volume_mm3 / area_mm2
         if t <= SHEET_MAX_THICKNESS_MM and bbox[2] >= 15 * t:
             f.shape = "sheet"
             notes.append(f"Detected sheet metal, thickness ≈ {t:.2f} mm.")
-            if bbox[0] > 3 * t:
-                f.bend_count = 2  # bent part; exact bend count needs B-rep data
-                notes.append("Part is formed (envelope thicker than sheet); assumed 2 bends.")
+            if count_bends:
+                f.bend_count = count_bends(t)
+                if f.bend_count:
+                    notes.append(f"{f.bend_count} bend(s) counted from the CAD model.")
+            elif bbox[0] > 3 * t:
+                f.bend_count = 2
+                notes.append(
+                    "Part is formed (envelope thicker than sheet); bend count assumed to be 2 "
+                    "(a STEP file read with OpenCascade gives the exact count)."
+                )
     if f.shape == "unknown":
-        f.shape = "rotational" if round_section else "prismatic"
+        f.shape = "rotational" if section else "prismatic"
+        if section == "hex":
+            notes.append(
+                "Hexagonal section: turned from hex bar; stock priced as round bar "
+                "over the corners (conservative)."
+            )
 
 
 # ---------- Mesh ----------
@@ -171,7 +197,7 @@ def _parse_mesh(data: bytes, file_name: str, ext: str, units: str | None) -> Par
     else:
         notes.append("Mesh is not watertight; volume will be estimated from the envelope.")
 
-    _classify_solid(f, bbox, volume_mm3, area_mm2, notes, _mesh_is_round(mesh))
+    _classify_solid(f, bbox, volume_mm3, area_mm2, notes, _turned_section(mesh.vertices))
 
     f.face_count = _mesh_surface_count(mesh)
     f.complexity = _part_complexity(f.face_count, f.hole_count)
@@ -252,7 +278,11 @@ def _step_from_brep(b, f: PartFeatures, notes: list[str]) -> None:
     f.hole_count = len(brep.full_cylinders(b.cylinders, concave=True))
     f.confidence = "high"
     outer = [2 * g[0].radius for g in brep.full_cylinders(b.cylinders, concave=False)]
-    _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes, _round_envelope(b.bbox, outer))
+    section = "round" if _round_envelope(b.bbox, outer) else _turned_section(b.vertices)
+    if section == "round" and _turned_section(b.vertices) == "hex":
+        section = "hex"  # e.g. a hex fitting with a turned spigot: the bar is hex
+    _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes, section,
+                    count_bends=lambda t: brep.bend_count(b.cylinders, t))
     f.complexity = _part_complexity(b.surface_count, f.hole_count)
 
 

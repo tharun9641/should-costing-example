@@ -192,3 +192,42 @@ def test_inr_fx_and_rate_provenance(client):
     assert "turning" in lathe["source"]
     others = [l for l in client.get("/api/locations").json() if l["currency"] not in ("INR", "USD")]
     assert all("Unverified" in l["fx_source"] for l in others)
+
+
+# ---------- Bends and bar stock ----------
+
+def test_single_bend_counted_from_step(client):
+    pytest.importorskip("OCP")
+    body = analyze(client, "l_bracket_1bend.step")
+    assert body["features"]["shape"] == "sheet"
+    assert body["features"]["bend_count"] == 1  # was assumed 2
+    assert "1 bend" in next(s["reason"] for s in body["routing"] if s["machine_id"] == "PRESS_BRAKE")
+
+
+def test_mesh_bend_count_is_flagged_as_assumed(client):
+    import trimesh
+
+    from tests.conftest import mesh_bytes
+
+    l_bracket = trimesh.creation.box(extents=[50, 40, 2]).apply_translation([25, 0, 1]).union(
+        trimesh.creation.box(extents=[2, 40, 30]).apply_translation([1, 0, 17])
+    )
+    f = analyze(client, "bracket.stl", mesh_bytes(l_bracket))["features"]
+    assert f["shape"] == "sheet"
+    assert any("assumed" in n for n in f["notes"])
+
+
+def test_hex_bar_is_turned_square_bar_is_milled(client):
+    import numpy as np
+    import trimesh
+
+    from tests.conftest import mesh_bytes
+
+    hex_bar = trimesh.creation.cylinder(radius=30 / np.sqrt(3), height=100, sections=6)  # 30 A/F
+    body = analyze(client, "hex.stl", mesh_bytes(hex_bar))
+    assert body["features"]["shape"] == "rotational"
+    assert body["routing"][0]["machine_id"] == "CNC_LATHE"  # Ø34.6 across corners > Swiss limit
+    square = analyze(client, "square.stl", mesh_bytes(trimesh.creation.box(extents=[30, 30, 100])))
+    assert square["features"]["shape"] == "prismatic"
+    pytest.importorskip("OCP")
+    assert analyze(client, "hex_af30x100.step")["features"]["shape"] == "rotational"

@@ -5,7 +5,8 @@ def nearly_equal(x: float, y: float, rel: float = 0.03) -> bool:
 def rotational_dims(bbox: list[float]) -> tuple[float, float]:
     """(diameter, length) of a turned part from its ascending-sorted envelope.
 
-    a≈b is a shaft (Ø b, length c); otherwise a disc (Ø c, length a).
+    The closest pair of dimensions is the cross-section: a shaft (Ø b, length c)
+    or a disc (Ø c, length a). For hex bar the diameter is across corners.
     """
     a, b, c = bbox
-    return (b, c) if nearly_equal(a, b) else (c, a)
+    return (b, c) if b * b <= a * c else (c, a)  # b/a <= c/b without dividing

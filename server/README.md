@@ -50,7 +50,9 @@ app/
                            STEP: exact via services/brep.py when OCP is installed, else a
                            text parse (envelope from vertices + circular edges, low confidence)
   services/brep.py         OpenCascade reader: exact bbox, volume, area, bores vs outer diameters
-  services/machine_selector.py  Rules: sheet → laser (+ press brake), rotational → lathe/Swiss,
+  services/machine_selector.py  Rules: sheet → laser (+ press brake), rotational → lathe/Swiss
+                           (rotational = round cross-section, or regular-hex bar stock;
+                           square bar stays prismatic),
                            prismatic → 3- or 5-axis mill, tight tol / fine Ra → grinding
   services/cost_engine.py  Stock mass, cycle times, setup/programming amortisation,
                            overhead and profit → unit and total price (USD + local currency)

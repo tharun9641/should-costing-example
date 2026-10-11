@@ -21,7 +21,7 @@ from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.Message import Message, Message_Gravity
 from OCP.STEPControl import STEPControl_Reader
-from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_FORWARD
+from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_FORWARD, TopAbs_VERTEX
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopoDS import TopoDS
 
@@ -49,6 +49,7 @@ class Brep:
     face_count: int
     surface_count: int    # faces joined across tangent (G1) edges count once
     cylinders: list[CylFace]
+    vertices: np.ndarray  # (n, 3) B-rep vertex points
 
 
 def read_step(data: bytes) -> Brep | None:
@@ -84,7 +85,11 @@ def read_step(data: bytes) -> Brep | None:
         surf = BRepAdaptor_Surface(face)
         if surf.GetType() == GeomAbs_Cylinder:
             cylinders.append(_cyl_face(face, surf))
-    return Brep(bbox, volume, area, len(faces), _smooth_surface_count(shape, faces), cylinders)
+    vertices = np.array([
+        [p.X(), p.Y(), p.Z()]
+        for p in (BRep_Tool.Pnt_s(TopoDS.Vertex(v)) for v in _sub_shapes(shape, TopAbs_VERTEX))
+    ]).reshape(-1, 3)
+    return Brep(bbox, volume, area, len(faces), _smooth_surface_count(shape, faces), cylinders, vertices)
 
 
 def _sub_shapes(shape, kind):
@@ -170,6 +175,24 @@ def group_cylinders(cyls: list[CylFace]) -> list[list[CylFace]]:
         else:
             groups.append([c])
     return groups
+
+
+def bend_count(cyls: list[CylFace], thickness: float) -> int:
+    """Sheet bends: a concave and a convex cylinder face on one axis whose radii
+    differ by the sheet thickness (inner and outer bend radius)."""
+    groups: list[list[CylFace]] = []
+    for c in cyls:
+        for g in groups:
+            if _coaxial(g[0], c, tol=1e-2):
+                g.append(c)
+                break
+        else:
+            groups.append([c])
+    return sum(
+        any(abs((o.radius - i.radius) - thickness) <= 0.15 * thickness
+            for i in g if i.concave for o in g if not o.concave)
+        for g in groups
+    )
 
 
 def full_cylinders(cyls: list[CylFace], concave: bool) -> list[list[CylFace]]:
