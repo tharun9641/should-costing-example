@@ -42,6 +42,32 @@ RE_MATERIAL_LINE = re.compile(r"\bMAT(?:ERIAL|'L|L)?\b\.?\s*[:\-]?\s*([^\n]{2,60
 RE_NUMBER = re.compile(r"(?<![\w.±+\-/:])" + NUM + r"(?![\w.:/%°])")
 RE_INCH = re.compile(r"\b(INCH(?:ES)?|DIMENSIONS\s+(?:ARE\s+)?IN\s+IN)\b", re.IGNORECASE)
 
+# Title-block and note text whose numbers are not part dimensions. Removed before
+# the envelope is picked from the largest remaining numbers.
+NOT_DIMENSIONS = [re.compile(p, re.IGNORECASE) for p in (
+    # material grades: "SS 304", "AISI 4140", "AL 6061-T6", "EN8", "C45"
+    r"\b(?:SS|AISI|SAE|SUS|AL|AA|EN|GRADE|ALLOY|STAINLESS(?:\s+STEEL)?)\s*-?\s*\d{1,4}[A-Z]?\b",
+    r"\b\d{4}-T\d+\b",
+    r"\b(?:304|316|303|1018|1045|4140|6061|6082|7075|2024|5052)L?\b",
+    # dates
+    r"\bDATE\b[^\n]*",
+    r"\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b",
+    r"\b\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}\b",
+    # standards: "ISO 2768 m", "ASME Y14.5", "DIN 7168", "IS 2062"
+    r"\b(?:ISO|DIN|ASME|ANSI|IS|EN|BS|JIS|ASTM)\s*[A-Z]?\s*\d[\d.\-:/]*",
+    # drawing / part / revision numbers, sheet counts, scale
+    r"\b(?:DRG|DWG|DRAWING|PART|P/N|PN|ITEM|DOC(?:UMENT)?|JOB|ORDER)\b\.?\s*(?:NO\b\.?|NUMBER|#)?\s*[:\-]?\s*[A-Z0-9][\w\-/.]*",
+    r"\bREV(?:ISION)?\b\.?\s*[:\-]?\s*[A-Z0-9]+",
+    r"\b(?:SHEET|SHT)\s*\d+\s*(?:OF|/)\s*\d+",
+    r"\bSCALE\b\s*[:\-]?\s*\d+(?:\.\d+)?\s*[:/]\s*\d+(?:\.\d+)?",
+    # weight and quantity
+    r"\b(?:WEIGHT|WT|MASS)\b\.?\s*[:\-]?\s*\d+(?:\.\d+)?\s*(?:KG|G|LBS?)?\b",
+    r"\b\d+(?:\.\d+)?\s*(?:KG|LBS?)\b",
+    r"\b(?:QTY|QUANTITY)\b\.?\s*[:\-]?\s*\d+",
+    r"\b\d+\s*(?:PCS|NOS)\b",
+)]
+MAX_ENVELOPE_RATIO = 200  # largest / smallest; beyond this the picked numbers are not an envelope
+
 ROTATIONAL_HINTS = re.compile(r"\b(TURN(?:ED|ING)?|LATHE|SHAFT|PIN|BUSH(?:ING)?|SPACER|SLEEVE|KNURL)\b", re.IGNORECASE)
 SHEET_HINTS = re.compile(r"\b(SHEET\s*METAL|FLAT\s*PATTERN|K-?FACTOR|GAUGE|GA\b|BEND\s*RADIUS|CRCA|HRPO)\b", re.IGNORECASE)
 FIVE_AXIS_HINTS = re.compile(r"\b(5[- ]?AXIS|UNDERCUT|COMPOUND\s+ANGLE|FREEFORM)\b", re.IGNORECASE)
@@ -130,9 +156,15 @@ def parse_drawing_text(text: str, file_name: str = "drawing.pdf") -> PartFeature
     else:
         f.shape = "prismatic"
 
-    # Envelope: the largest dimension values are usually the overall sizes.
+    # Envelope: the largest dimension values are usually the overall sizes, once
+    # material grades, dates, standards and title-block numbers are removed.
+    dims_text = RE_MATERIAL_LINE.sub(" ", text)
+    if f.material_text:
+        dims_text = re.sub(re.escape(f.material_text), " ", dims_text, flags=re.IGNORECASE)
+    for pattern in NOT_DIMENSIONS:
+        dims_text = pattern.sub(" ", dims_text)
     nums = sorted(
-        {float(v) * scale for v in RE_NUMBER.findall(text)} - {0.0}, reverse=True
+        {float(v) * scale for v in RE_NUMBER.findall(dims_text)} - {0.0}, reverse=True
     )
     nums = [n for n in nums if 0.5 <= n <= 3000]
     bbox = None
@@ -146,13 +178,19 @@ def parse_drawing_text(text: str, file_name: str = "drawing.pdf") -> PartFeature
             bbox = [thickness, rest[1], rest[0]]
     elif len(nums) >= 3:
         bbox = nums[:3]
-    if bbox:
+    if bbox and max(bbox) / min(bbox) > MAX_ENVELOPE_RATIO:
+        notes.append(
+            f"Dimension values {sorted(bbox)} do not look like a part envelope; "
+            "pass length/width/height overrides."
+        )
+        bbox = None
+    elif bbox:
         f.bbox_mm = sorted(round(v, 3) for v in bbox)
         notes.append(
             "Envelope inferred from the largest dimension values on the drawing; "
             "verify or override length/width/height."
         )
-    else:
+    elif not any("overrides" in n for n in notes):
         notes.append("Could not infer part envelope; pass length/width/height overrides.")
 
     if FIVE_AXIS_HINTS.search(text):

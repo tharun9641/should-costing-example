@@ -62,3 +62,40 @@ def test_step_fallback_ignores_axis_origins_and_counts_single_face_holes(client,
     assert f["bbox_mm"] == pytest.approx([25, 80, 120], abs=0.01)
     assert f["hole_count"] == 3
     assert min(f["bbox_mm"]) > 0
+
+
+# ---------- PDF envelope ----------
+
+TITLE_BLOCK = [
+    "MATERIAL: SS 304", "DATE 2026-10-11", "DRG NO 4521 REV 3", "SHEET 1 OF 1",
+    "GENERAL TOL ISO 2768 m", "WEIGHT 0.5 KG", "90", "60", "12",
+]
+
+
+def test_pdf_envelope_ignores_title_block_numbers():
+    from app.services.pdf_parser import parse_drawing_text
+
+    f = parse_drawing_text("\n".join(TITLE_BLOCK))
+    assert f.bbox_mm == [12, 60, 90]  # was 304 x 2026 x 2768
+    assert f.material_id == "SS304"
+
+
+def test_pdf_title_block_prices_sensibly(client):
+    from tests.conftest import make_pdf
+
+    r = client.post(
+        "/api/estimate",
+        files={"file": ("plate.pdf", make_pdf(TITLE_BLOCK), "application/pdf")},
+        data={"location_id": "IN-CHENNAI", "quantity": "100"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["cost"]["unit_price_local"] < 5000  # was ~9.57 million INR
+
+
+def test_pdf_implausible_envelope_asks_for_overrides(client):
+    from tests.conftest import make_pdf
+
+    pdf = make_pdf(["MATERIAL: AL 6061", "PLATE 600 x 500", "CHAMFER 1", "NOTE 2"])
+    f = analyze(client, "odd.pdf", pdf)["features"]
+    assert f["bbox_mm"] is None
+    assert any("overrides" in n for n in f["notes"])
