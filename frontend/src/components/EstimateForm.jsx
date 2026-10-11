@@ -106,7 +106,7 @@ export default function EstimateForm({ catalog, loading, onResult }) {
               quantity,
               machine_ids: machineIds.join(','),
             })
-      onResult({ kind, data })
+      onResult({ kind: kind === 'analyze' ? 'analysis' : kind, data }) // Results/App use 'analysis'
     } catch (e) {
       setError(e.message)
     } finally {
