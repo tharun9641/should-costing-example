@@ -1,0 +1,4 @@
+# Optional exact STEP geometry (OpenCascade). ~1.1 GB installed with its vtk
+# dependency, ~370 MB peak RSS when reading a part; the app falls back to a
+# text parser without it. See README "STEP geometry".
+cadquery-ocp==8.0.1.1.0

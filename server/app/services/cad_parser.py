@@ -3,9 +3,10 @@
 - Mesh formats (STL, OBJ, PLY, OFF, 3MF, GLB) are loaded with trimesh: exact
   bounding box, volume, surface area, through-hole count (from genus) and planar
   face groups.
-- STEP files are read with a lightweight text parser (no OpenCascade dependency):
-  units, bounding box from CARTESIAN_POINTs, face/surface-type counts and any
-  material named in the product data. Volume is estimated from the envelope.
+- STEP files are read with OpenCascade (`cadquery-ocp`, see services/brep.py) when
+  it is installed: exact bounding box, volume, surface area and bores. Without it,
+  a text parser reads the envelope from vertices and circular edges and estimates
+  volume from the envelope (low confidence).
 """
 
 import io
@@ -50,6 +51,27 @@ def _classify_envelope(bbox: list[float]) -> str:
     return "rotational" if nearly_equal(a, b) or nearly_equal(b, c) else "prismatic"
 
 
+def _classify_solid(f: PartFeatures, bbox: list[float], volume_mm3: float | None,
+                    area_mm2: float, notes: list[str]) -> None:
+    """Shape (and assumed bends) from exact solid geometry; shared by mesh and B-rep."""
+    # Sheet test: a plate of thickness t has t ≈ 2V/A.
+    if volume_mm3:
+        t = 2 * volume_mm3 / area_mm2
+        if t <= SHEET_MAX_THICKNESS_MM and bbox[2] >= 15 * t:
+            f.shape = "sheet"
+            notes.append(f"Detected sheet metal, thickness ≈ {t:.2f} mm.")
+            if bbox[0] > 3 * t:
+                f.bend_count = 2  # bent part; exact bend count needs B-rep data
+                notes.append("Part is formed (envelope thicker than sheet); assumed 2 bends.")
+    if f.shape == "unknown":
+        f.shape = _classify_envelope(bbox)
+        if f.shape == "rotational" and volume_mm3:
+            # Confirm with fill ratio: a solid cylinder fills π/4 of its box.
+            fill = volume_mm3 / (bbox[0] * bbox[1] * bbox[2])
+            if fill > 0.9:
+                f.shape = "prismatic"
+
+
 # ---------- Mesh ----------
 
 def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
@@ -83,22 +105,7 @@ def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
     else:
         notes.append("Mesh is not watertight; volume will be estimated from the envelope.")
 
-    # Sheet test: a plate of thickness t has t ≈ 2V/A.
-    if volume_mm3:
-        t = 2 * volume_mm3 / area_mm2
-        if t <= SHEET_MAX_THICKNESS_MM and bbox[2] >= 15 * t:
-            f.shape = "sheet"
-            notes.append(f"Detected sheet metal, thickness ≈ {t:.2f} mm.")
-            if bbox[0] > 3 * t:
-                f.bend_count = 2  # bent part; exact bend count needs B-rep data
-                notes.append("Part is formed (envelope thicker than sheet); assumed 2 bends.")
-    if f.shape == "unknown":
-        f.shape = _classify_envelope(bbox)
-        if f.shape == "rotational" and volume_mm3:
-            # Confirm with fill ratio: a solid cylinder fills π/4 of its box.
-            fill = volume_mm3 / (bbox[0] * bbox[1] * bbox[2])
-            if fill > 0.9:
-                f.shape = "prismatic"
+    _classify_solid(f, bbox, volume_mm3, area_mm2, notes)
 
     try:
         facets = len(mesh.facets)
@@ -112,9 +119,9 @@ def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
 
 # ---------- STEP ----------
 
-RE_POINT = re.compile(
-    r"CARTESIAN_POINT\s*\(\s*'[^']*'\s*,\s*\(\s*([-+\dEe.]+)\s*,\s*([-+\dEe.]+)\s*,\s*([-+\dEe.]+)\s*\)"
-)
+RE_ENTITY = re.compile(r"#(\d+)\s*=\s*([A-Z0-9_]+)\s*\(([^;]*)\)\s*;", re.DOTALL)
+RE_FLOAT = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[Ee][-+]?\d+)?")
+RE_REF = re.compile(r"#(\d+)")
 RE_PRODUCT = re.compile(r"PRODUCT\s*\(\s*'([^']*)'\s*,\s*'([^']*)'", re.IGNORECASE)
 RE_MATERIAL_REP = re.compile(
     r"(?:MATERIAL|DESCRIPTIVE_REPRESENTATION_ITEM)[^;]*?'([^']{2,80})'", re.IGNORECASE
@@ -140,30 +147,7 @@ def _parse_step(data: bytes, file_name: str) -> PartFeatures:
 
     scale, units = _step_units_scale(text)
     notes: list[str] = []
-
-    pts = np.array(RE_POINT.findall(text), dtype=float)
-    if pts.size == 0:
-        raise UnsupportedCADError("No geometry found in STEP file")
-    extents = (pts.max(axis=0) - pts.min(axis=0)) * scale
-    bbox = sorted(float(v) for v in extents)
-
-    counts = {
-        k: len(re.findall(rf"\b{k}\s*\(", text))
-        for k in ("ADVANCED_FACE", "PLANE", "CYLINDRICAL_SURFACE", "CONICAL_SURFACE",
-                  "TOROIDAL_SURFACE", "B_SPLINE_SURFACE_WITH_KNOTS", "SPHERICAL_SURFACE")
-    }
-    faces = counts["ADVANCED_FACE"]
-    cyl = counts["CYLINDRICAL_SURFACE"]
-    freeform = counts["B_SPLINE_SURFACE_WITH_KNOTS"]
-
-    f = PartFeatures(
-        source="cad",
-        file_name=file_name,
-        units_detected=units,
-        bbox_mm=[round(v, 3) for v in bbox],
-        face_count=faces,
-        confidence="medium",
-    )
+    f = PartFeatures(source="cad", file_name=file_name, units_detected=units)
 
     # Material from product name/description or a material representation.
     candidates = [" ".join(p) for p in RE_PRODUCT.findall(text)]
@@ -175,7 +159,99 @@ def _parse_step(data: bytes, file_name: str) -> PartFeatures:
     if not f.material_id:
         notes.append("No material found in STEP product data.")
 
-    # Shape
+    b = _read_brep(data, notes)
+    if b:
+        _step_from_brep(b, f, notes)
+    else:
+        _step_from_text(text, scale, f, notes)
+    f.notes = notes
+    return f
+
+
+def _read_brep(data: bytes, notes: list[str]):
+    try:
+        from app.services import brep  # lazy: OCP is large and optional
+    except ImportError:
+        return None
+    try:
+        return brep.read_step(data)
+    except Exception as e:  # malformed geometry: fall back to the text parser
+        notes.append(f"OpenCascade could not read the solid ({e}); used the text parser.")
+        return None
+
+
+def _step_from_brep(b, f: PartFeatures, notes: list[str]) -> None:
+    from app.services import brep
+
+    f.bbox_mm = [round(v, 3) for v in b.bbox]
+    f.volume_cm3 = round(b.volume_mm3 / 1000, 4)
+    f.surface_area_cm2 = round(b.area_mm2 / 100, 3)
+    f.face_count = b.face_count
+    f.hole_count = len(brep.full_cylinders(b.cylinders, concave=True))
+    f.confidence = "high"
+    _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes)
+    f.complexity = _complexity(b.face_count)
+
+
+def _step_from_text(text: str, scale: float, f: PartFeatures, notes: list[str]) -> None:
+    """Fallback without a B-rep kernel: envelope from topology, volume estimated."""
+    ents = {int(i): (name, args) for i, name, args in RE_ENTITY.findall(text)}
+
+    def floats(i: int) -> np.ndarray | None:
+        e = ents.get(i)
+        if not e or e[0] not in ("CARTESIAN_POINT", "DIRECTION"):
+            return None
+        v = [float(x) for x in RE_FLOAT.findall(e[1].split(",", 1)[1])]
+        return np.array(v) if len(v) == 3 else None  # skip 2D (parameter-space) points
+
+    def refs(i: int) -> list[int]:
+        return [int(r) for r in RE_REF.findall(ents[i][1])]
+
+    def placement(i: int) -> tuple[np.ndarray, np.ndarray] | None:
+        e = ents.get(i)
+        if not e or e[0] != "AXIS2_PLACEMENT_3D":
+            return None
+        r = refs(i)
+        loc = floats(r[0]) if r else None
+        axis = floats(r[1]) if len(r) > 1 else np.array([0.0, 0.0, 1.0])
+        if loc is None or axis is None:
+            return None
+        return loc * scale, axis / np.linalg.norm(axis)
+
+    # Envelope from vertices plus the extremes of circular edges (a cylinder's
+    # only vertices sit on its seam). Surface-axis origins are never used.
+    lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
+    for i, (name, _) in ents.items():
+        if name == "VERTEX_POINT" and (p := floats(refs(i)[0])) is not None:
+            lo, hi = np.minimum(lo, p * scale), np.maximum(hi, p * scale)
+        elif name == "CIRCLE" and (pl := placement(refs(i)[0])) is not None:
+            r = float(RE_FLOAT.findall(ents[i][1].rsplit(",", 1)[1])[0]) * scale
+            reach = r * np.sqrt(np.clip(1 - pl[1] ** 2, 0, 1))
+            lo, hi = np.minimum(lo, pl[0] - reach), np.maximum(hi, pl[0] + reach)
+    if not np.isfinite(lo).all():
+        pts = [p for i in ents if (p := floats(i)) is not None and ents[i][0] == "CARTESIAN_POINT"]
+        if not pts:
+            raise UnsupportedCADError("No geometry found in STEP file")
+        notes.append("STEP file has no vertex topology; envelope taken from all points.")
+        lo, hi = np.min(pts, axis=0) * scale, np.max(pts, axis=0) * scale
+    bbox = sorted(float(v) for v in hi - lo)
+    if bbox[0] <= 1e-6:
+        raise UnsupportedCADError(
+            "Could not determine a 3D envelope from the STEP file — "
+            "pass length_mm, width_mm and height_mm."
+        )
+
+    counts = {
+        k: len(re.findall(rf"\b{k}\s*\(", text))
+        for k in ("ADVANCED_FACE", "CYLINDRICAL_SURFACE", "B_SPLINE_SURFACE_WITH_KNOTS")
+    }
+    faces = counts["ADVANCED_FACE"]
+    cyl = counts["CYLINDRICAL_SURFACE"]
+
+    f.bbox_mm = [round(v, 3) for v in bbox]
+    f.face_count = faces
+    f.confidence = "low"
+
     a, b, c = bbox
     if a <= SHEET_MAX_THICKNESS_MM and b >= 15 * a and cyl <= faces * 0.4:
         f.shape = "sheet"
@@ -184,10 +260,29 @@ def _parse_step(data: bytes, file_name: str) -> PartFeatures:
         if f.shape == "rotational" and faces and cyl / faces < 0.2:
             f.shape = "prismatic"
 
-    # Each cylindrical hole is typically split into 2 half-cylinder faces.
-    # On a turned part the outer diameters are cylinders too, so discount them.
-    hole_cyl = cyl if f.shape != "rotational" else max(0, cyl - 4)
-    f.hole_count = hole_cyl // 2
+    # Distinct cylinders (a bore may be one face or two half-faces). Unresolvable
+    # surfaces fall back to the half-face assumption.
+    cyls = []
+    for i, (name, args) in ents.items():
+        if name == "CYLINDRICAL_SURFACE":
+            pl = placement(refs(i)[0]) if refs(i) else None
+            if pl is None:
+                cyls = None
+                break
+            loc, axis = pl
+            axis = axis if axis[np.argmax(np.abs(axis))] > 0 else -axis
+            foot = loc - np.dot(loc, axis) * axis
+            r = float(RE_FLOAT.findall(args.rsplit(",", 1)[1])[0]) * scale
+            cyls.append((round(r, 3), *np.round(axis, 4), *np.round(foot, 2)))
+    if cyls is None:
+        f.hole_count = (cyl if f.shape != "rotational" else max(0, cyl - 4)) // 2
+    else:
+        unique = set(cyls)
+        if f.shape == "rotational" and unique:
+            # Turned diameters share the part axis: count only off-axis bores.
+            main = max(unique)[1:]
+            unique = {u for u in unique if u[1:] != main}
+        f.hole_count = len(unique)
 
     # Volume / area estimate from the envelope
     box = a * b * c
@@ -201,10 +296,7 @@ def _parse_step(data: bytes, file_name: str) -> PartFeatures:
     f.volume_cm3 = round(vol / 1000, 3)
     f.surface_area_cm2 = round(2 * (a * b + b * c + a * c) * 1.2 / 100, 3)
     notes.append(
-        "STEP volume and surface area are estimated from the envelope "
-        "(install an OpenCascade-based reader for exact values)."
+        "Volume and surface area are estimated from the envelope (OpenCascade not "
+        "installed; install cadquery-ocp for exact STEP geometry)."
     )
-
-    f.complexity = "high" if freeform > 5 else _complexity(faces)
-    f.notes = notes
-    return f
+    f.complexity = "high" if counts["B_SPLINE_SURFACE_WITH_KNOTS"] > 5 else _complexity(faces)

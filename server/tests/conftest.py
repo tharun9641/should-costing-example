@@ -1,4 +1,5 @@
 import io
+from pathlib import Path
 
 import pytest
 import trimesh
@@ -98,9 +99,25 @@ def step_file() -> bytes:
     ]
     for i, p in enumerate(pts, start=10):
         lines.append(f"#{i}=CARTESIAN_POINT('',({p[0]:.1f},{p[1]:.1f},{p[2]:.1f}));")
+        lines.append(f"#{i + 500}=VERTEX_POINT('',#{i});")
     for i in range(30, 42):
         lines.append(f"#{i}=ADVANCED_FACE('',(#1),#2,.T.);")
         lines.append(f"#{i + 100}=PLANE('',#1);")
     lines += ["#200=CYLINDRICAL_SURFACE('',#1,3.0);"] * 4
     lines += ["ENDSEC;", "END-ISO-10303-21;"]
     return "\n".join(lines).encode()
+
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def fixture_bytes(name: str) -> bytes:
+    return (FIXTURES / name).read_bytes()
+
+
+@pytest.fixture
+def no_ocp(monkeypatch):
+    """Force the STEP text-parser fallback, as on a server without cadquery-ocp."""
+    from app.services import cad_parser
+
+    monkeypatch.setattr(cad_parser, "_read_brep", lambda data, notes: None)

@@ -47,7 +47,9 @@ app/
   services/catalog.py      Loads data/*.json, applies location factors
   services/pdf_parser.py   Drawing text → material, tolerances, Ra, holes, threads, bends, envelope
   services/cad_parser.py   STL/OBJ/PLY/3MF/GLB (trimesh: exact volume, area, holes via genus)
-                           STEP (text parse: units, bbox, face types, material in product data)
+                           STEP: exact via services/brep.py when OCP is installed, else a
+                           text parse (envelope from vertices + circular edges, low confidence)
+  services/brep.py         OpenCascade reader: exact bbox, volume, area, bores vs outer diameters
   services/machine_selector.py  Rules: sheet → laser (+ press brake), rotational → lathe/Swiss,
                            prismatic → 3- or 5-axis mill, tight tol / fine Ra → grinding
   services/cost_engine.py  Stock mass, cycle times, setup/programming amortisation,
@@ -61,5 +63,9 @@ app/
   wire a live feed into `services/catalog.py` (the only module that reads rates).
 - **PDF parsing reads the text layer only.** Scanned drawings return low confidence; pass
   overrides. The part envelope is guessed from the largest dimension values — verify it.
-- **STEP volume/area are estimated** from the envelope; mesh formats give exact values.
+- **STEP geometry.** With `pip install -r requirements-ocp.txt` (OpenCascade), STEP volume,
+  area, envelope and holes are exact. It is ~1.1 GB installed (OCP 438 MB + its required
+  vtk 638 MB on Linux) and raises peak memory from ~100 MB to ~370 MB, so it is left out of
+  `requirements.txt`: on a 512 MB instance it fits for single parts but leaves little headroom.
+  Without it, STEP volume/area are estimated from the envelope and confidence is "low".
   IGES, DXF and native CAD formats (SLDPRT, etc.) are not supported.
