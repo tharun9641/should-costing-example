@@ -119,3 +119,25 @@ def test_complexity_and_routing_ignore_mesh_resolution(client, make, resolutions
     assert len(results) == 1, results  # was medium/high and lathe vs lathe+mill, 3- vs 5-axis
     pytest.importorskip("OCP")
     assert _cx_and_route(client, step, fixture_bytes(step)) in results
+
+
+# ---------- Shape from geometry, not the envelope ----------
+
+def test_square_plate_with_holes_is_milled_not_turned(client):
+    """Two equal envelope sides and a low fill ratio used to mean 'rotational'."""
+    from tests.conftest import square_plate_4holes_stl
+
+    body = analyze(client, "plate.stl", square_plate_4holes_stl())
+    assert body["features"]["shape"] == "prismatic"
+    assert body["routing"][0]["process"] == "milling"
+
+
+@pytest.mark.parametrize("ocp_mode", ["ocp", "fallback"])
+def test_square_plate_step_is_prismatic(client, monkeypatch, ocp_mode):
+    if ocp_mode == "ocp":
+        pytest.importorskip("OCP")
+    else:
+        from app.services import cad_parser
+        monkeypatch.setattr(cad_parser, "_read_brep", lambda data, notes: None)
+    assert analyze(client, "plate_100x100x30_4holes.step")["features"]["shape"] == "prismatic"
+    assert analyze(client, "disc_d100x20.step")["features"]["shape"] == "rotational"

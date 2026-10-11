@@ -59,14 +59,58 @@ def _mesh_surface_count(mesh: trimesh.Trimesh) -> int:
     return len(trimesh.graph.connected_components(smooth, nodes=np.arange(len(mesh.faces)), min_len=1))
 
 
-def _classify_envelope(bbox: list[float]) -> str:
-    """Rotational if two of the three envelope dimensions are (nearly) equal."""
+def _cross2(u: np.ndarray, v: np.ndarray) -> float:
+    return float(u[0] * v[1] - u[1] * v[0])
+
+
+def _convex_hull(pts: np.ndarray) -> np.ndarray:
+    """2D convex hull (Andrew's monotone chain), collinear points dropped."""
+    pts = np.unique(np.round(pts, 6), axis=0)  # also sorts by x, then y
+    if len(pts) < 3:
+        return pts
+    eps = 1e-9 * float(np.ptp(pts, axis=0).max()) ** 2
+
+    def half(points):
+        chain: list[np.ndarray] = []
+        for p in points:
+            while len(chain) >= 2 and _cross2(chain[-1] - chain[-2], p - chain[-2]) <= eps:
+                chain.pop()
+            chain.append(p)
+        return chain[:-1]
+
+    return np.array(half(pts) + half(pts[::-1]))
+
+
+def _section_is_round(pts2d: np.ndarray) -> bool:
+    """Cross-section outline is a circle: hull area ≥ 95% of the circle through its
+    farthest point (a 12-gon is 95.5%, an octagon 90%, a hexagon 83%, a square 64%)."""
+    hull = _convex_hull(pts2d)
+    if len(hull) < 3:
+        return False
+    centre = (hull.min(axis=0) + hull.max(axis=0)) / 2
+    r = float(np.linalg.norm(hull - centre, axis=1).max())
+    x, y = hull[:, 0], hull[:, 1]
+    area = 0.5 * abs(float(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1))))
+    return area >= 0.95 * math.pi * r * r
+
+
+def _mesh_is_round(mesh: trimesh.Trimesh) -> bool:
+    # shortcut: assumes the turning axis is a coordinate axis, as exported from CAD;
+    # use the principal inertia axes if arbitrarily rotated meshes show up.
+    return any(_section_is_round(np.delete(mesh.vertices, k, axis=1)) for k in range(3))
+
+
+def _round_envelope(bbox: list[float], diameters) -> bool:
+    """An outer diameter equals the envelope's (square) cross-section."""
     a, b, c = bbox
-    return "rotational" if nearly_equal(a, b) or nearly_equal(b, c) else "prismatic"
+    return any(
+        (nearly_equal(a, b) and nearly_equal(d, b)) or (nearly_equal(b, c) and nearly_equal(d, c))
+        for d in diameters
+    )
 
 
 def _classify_solid(f: PartFeatures, bbox: list[float], volume_mm3: float | None,
-                    area_mm2: float, notes: list[str]) -> None:
+                    area_mm2: float, notes: list[str], round_section: bool) -> None:
     """Shape (and assumed bends) from exact solid geometry; shared by mesh and B-rep."""
     # Sheet test: a plate of thickness t has t ≈ 2V/A.
     if volume_mm3:
@@ -78,12 +122,7 @@ def _classify_solid(f: PartFeatures, bbox: list[float], volume_mm3: float | None
                 f.bend_count = 2  # bent part; exact bend count needs B-rep data
                 notes.append("Part is formed (envelope thicker than sheet); assumed 2 bends.")
     if f.shape == "unknown":
-        f.shape = _classify_envelope(bbox)
-        if f.shape == "rotational" and volume_mm3:
-            # Confirm with fill ratio: a solid cylinder fills π/4 of its box.
-            fill = volume_mm3 / (bbox[0] * bbox[1] * bbox[2])
-            if fill > 0.9:
-                f.shape = "prismatic"
+        f.shape = "rotational" if round_section else "prismatic"
 
 
 # ---------- Mesh ----------
@@ -119,7 +158,7 @@ def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
     else:
         notes.append("Mesh is not watertight; volume will be estimated from the envelope.")
 
-    _classify_solid(f, bbox, volume_mm3, area_mm2, notes)
+    _classify_solid(f, bbox, volume_mm3, area_mm2, notes, _mesh_is_round(mesh))
 
     f.face_count = _mesh_surface_count(mesh)
     f.complexity = _part_complexity(f.face_count, f.hole_count)
@@ -199,7 +238,8 @@ def _step_from_brep(b, f: PartFeatures, notes: list[str]) -> None:
     f.face_count = b.face_count
     f.hole_count = len(brep.full_cylinders(b.cylinders, concave=True))
     f.confidence = "high"
-    _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes)
+    outer = [2 * g[0].radius for g in brep.full_cylinders(b.cylinders, concave=False)]
+    _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes, _round_envelope(b.bbox, outer))
     f.complexity = _part_complexity(b.surface_count, f.hole_count)
 
 
@@ -231,11 +271,13 @@ def _step_from_text(text: str, scale: float, f: PartFeatures, notes: list[str]) 
     # Envelope from vertices plus the extremes of circular edges (a cylinder's
     # only vertices sit on its seam). Surface-axis origins are never used.
     lo, hi = np.full(3, np.inf), np.full(3, -np.inf)
+    circle_dias = []
     for i, (name, _) in ents.items():
         if name == "VERTEX_POINT" and (p := floats(refs(i)[0])) is not None:
             lo, hi = np.minimum(lo, p * scale), np.maximum(hi, p * scale)
         elif name == "CIRCLE" and (pl := placement(refs(i)[0])) is not None:
             r = float(RE_FLOAT.findall(ents[i][1].rsplit(",", 1)[1])[0]) * scale
+            circle_dias.append(2 * r)
             reach = r * np.sqrt(np.clip(1 - pl[1] ** 2, 0, 1))
             lo, hi = np.minimum(lo, pl[0] - reach), np.maximum(hi, pl[0] + reach)
     if not np.isfinite(lo).all():
@@ -266,9 +308,7 @@ def _step_from_text(text: str, scale: float, f: PartFeatures, notes: list[str]) 
     if a <= SHEET_MAX_THICKNESS_MM and b >= 15 * a and cyl <= faces * 0.4:
         f.shape = "sheet"
     else:
-        f.shape = _classify_envelope(bbox)
-        if f.shape == "rotational" and faces and cyl / faces < 0.2:
-            f.shape = "prismatic"
+        f.shape = "rotational" if _round_envelope(bbox, circle_dias) else "prismatic"
 
     # Distinct cylinders (a bore may be one face or two half-faces). Unresolvable
     # surfaces fall back to the half-face assumption.

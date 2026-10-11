@@ -135,3 +135,12 @@ def block_3holes_stl(segments: int) -> bytes:
         for x in (-30, 0, 30)
     ])
     return mesh_bytes(trimesh.creation.box(extents=[120, 80, 25]).difference(holes))
+
+
+def square_plate_4holes_stl() -> bytes:
+    """100 x 100 x 30 mm plate with four Ø22 through-holes."""
+    holes = trimesh.util.concatenate([
+        trimesh.creation.cylinder(radius=11, height=40, sections=48).apply_translation([x, y, 0])
+        for x in (-25, 25) for y in (-25, 25)
+    ])
+    return mesh_bytes(trimesh.creation.box(extents=[100, 100, 30]).difference(holes))
