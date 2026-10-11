@@ -59,6 +59,7 @@ export default function EstimateForm({ catalog, loading, onResult }) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [dims, setDims] = useState({ length_mm: '', width_mm: '', height_mm: '' })
   const [shape, setShape] = useState('')
+  const [units, setUnits] = useState('') // '' = assumed mm (server warns if tiny)
   const [machineIds, setMachineIds] = useState([])
   const [busy, setBusy] = useState(null) // 'analyze' | 'estimate'
   const [error, setError] = useState(null)
@@ -69,6 +70,7 @@ export default function EstimateForm({ catalog, loading, onResult }) {
     material_id: materialId,
     ...dims,
     shape,
+    units,
   }
 
   function validate(kind) {
@@ -115,7 +117,7 @@ export default function EstimateForm({ catalog, loading, onResult }) {
   }
 
   const activeOverrides =
-    (Object.values(dims).some((d) => d !== '') ? 1 : 0) + (shape ? 1 : 0) + (machineIds.length ? 1 : 0)
+    (Object.values(dims).some((d) => d !== '') ? 1 : 0) + (shape ? 1 : 0) + (units ? 1 : 0) + (machineIds.length ? 1 : 0)
 
   const toggleMachine = (id) =>
     setMachineIds((ids) => (ids.includes(id) ? ids.filter((m) => m !== id) : [...ids, id]))
@@ -208,6 +210,15 @@ export default function EstimateForm({ catalog, loading, onResult }) {
               <option value="rotational">Rotational (turned)</option>
               <option value="prismatic">Prismatic (milled)</option>
               <option value="sheet">Sheet metal</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Units in mesh file (STL, OBJ…)</span>
+            <select value={units} onChange={(e) => setUnits(e.target.value)}>
+              <option value="">Millimetres (assumed)</option>
+              <option value="mm">Millimetres</option>
+              <option value="inch">Inches</option>
+              <option value="m">Metres</option>
             </select>
           </label>
           <fieldset className="field">

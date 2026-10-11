@@ -141,3 +141,26 @@ def test_square_plate_step_is_prismatic(client, monkeypatch, ocp_mode):
         monkeypatch.setattr(cad_parser, "_read_brep", lambda data, notes: None)
     assert analyze(client, "plate_100x100x30_4holes.step")["features"]["shape"] == "prismatic"
     assert analyze(client, "disc_d100x20.step")["features"]["shape"] == "rotational"
+
+
+# ---------- Mesh units ----------
+
+def test_mesh_units_inch(client):
+    import trimesh
+
+    from tests.conftest import mesh_bytes
+
+    stl = mesh_bytes(trimesh.creation.box(extents=[4, 2, 1]))  # a 4 x 2 x 1 inch block
+    f = analyze(client, "block.stl", stl)["features"]
+    assert f["bbox_mm"] == pytest.approx([1, 2, 4])
+    assert any("inch" in n for n in f["notes"])
+
+    f = analyze(client, "block.stl", stl, units="inch")["features"]
+    assert f["bbox_mm"] == pytest.approx([25.4, 50.8, 101.6])
+    assert f["volume_cm3"] == pytest.approx(8 * 2.54**3, rel=1e-4)
+    assert f["units_detected"] == "inch"
+
+
+def test_mesh_units_rejects_unknown(client, shaft_stl):
+    r = client.post("/api/analyze", files={"file": ("s.stl", shaft_stl)}, data={"units": "ft"})
+    assert r.status_code == 422

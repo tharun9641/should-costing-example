@@ -23,6 +23,8 @@ from app.services.geometry import nearly_equal, rotational_dims
 MESH_EXTS = {".stl", ".obj", ".ply", ".off", ".3mf", ".glb"}
 STEP_EXTS = {".step", ".stp"}
 SUPPORTED_EXTS = MESH_EXTS | STEP_EXTS
+MESH_UNITS_MM = {"mm": 1.0, "inch": 25.4, "m": 1000.0}
+SMALL_PART_MM = 10.0  # a mesh smaller than this is probably in inches
 
 SHEET_MAX_THICKNESS_MM = 6.0
 # Adjacent mesh triangles bending less than this belong to one smooth surface.
@@ -35,9 +37,10 @@ class UnsupportedCADError(ValueError):
     pass
 
 
-def parse_cad(data: bytes, file_name: str, ext: str) -> PartFeatures:
+def parse_cad(data: bytes, file_name: str, ext: str, units: str | None = None) -> PartFeatures:
+    """`units` applies to mesh files, which carry none; STEP files declare their own."""
     if ext in MESH_EXTS:
-        return _parse_mesh(data, file_name, ext)
+        return _parse_mesh(data, file_name, ext, units)
     if ext in STEP_EXTS:
         return _parse_step(data, file_name)
     raise UnsupportedCADError(
@@ -127,7 +130,7 @@ def _classify_solid(f: PartFeatures, bbox: list[float], volume_mm3: float | None
 
 # ---------- Mesh ----------
 
-def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
+def _parse_mesh(data: bytes, file_name: str, ext: str, units: str | None) -> PartFeatures:
     try:
         loaded = trimesh.load(io.BytesIO(data), file_type=ext.lstrip("."), force="mesh")
     except Exception as e:  # trimesh raises a variety of errors on bad input
@@ -136,14 +139,24 @@ def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
     if mesh.is_empty:
         raise UnsupportedCADError("CAD file contains no geometry")
 
-    notes: list[str] = ["Mesh units assumed to be millimetres."]
+    if units:
+        mesh.apply_scale(MESH_UNITS_MM[units])
+        notes: list[str] = [f"Mesh units set to {units}."]
+    else:
+        notes = ["Mesh units assumed to be millimetres."]
     bbox = sorted(float(v) for v in mesh.extents)
+    if not units and bbox[2] < SMALL_PART_MM:
+        notes.append(
+            f"Largest dimension is only {bbox[2]:.2f} mm — if the file is in inches, "
+            "set units to inch."
+        )
     volume_mm3 = abs(float(mesh.volume)) if mesh.is_watertight else None
     area_mm2 = float(mesh.area)
 
     f = PartFeatures(
         source="cad",
         file_name=file_name,
+        units_detected=units or "mm",
         bbox_mm=[round(v, 3) for v in bbox],
         surface_area_cm2=round(area_mm2 / 100, 3),
         confidence="high" if mesh.is_watertight else "medium",

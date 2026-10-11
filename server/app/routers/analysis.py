@@ -12,6 +12,7 @@ from app.services.pdf_parser import parse_pdf
 router = APIRouter(prefix="/api", tags=["analysis & estimate"])
 
 Shape = Literal["rotational", "prismatic", "sheet"]
+Units = Literal["mm", "inch", "m"]
 
 
 async def _read_upload(file: UploadFile) -> tuple[bytes, str]:
@@ -28,9 +29,9 @@ async def _read_upload(file: UploadFile) -> tuple[bytes, str]:
     return data, ext
 
 
-def _extract(data: bytes, ext: str, name: str) -> PartFeatures:
+def _extract(data: bytes, ext: str, name: str, units: Units | None = None) -> PartFeatures:
     try:
-        return parse_pdf(data, name) if ext == ".pdf" else parse_cad(data, name, ext)
+        return parse_pdf(data, name) if ext == ".pdf" else parse_cad(data, name, ext, units)
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     except Exception as e:
@@ -68,6 +69,9 @@ MaterialOverride = Annotated[
 ]
 DimOverride = Annotated[float | None, Form(gt=0, description="Envelope dimension in mm")]
 ShapeOverride = Annotated[Shape | None, Form(description="Overrides detected shape")]
+UnitsOverride = Annotated[
+    Units | None, Form(description="Units of a mesh file (STL/OBJ/...); default mm")
+]
 
 
 @router.post("/analyze", response_model=AnalysisResult)
@@ -78,10 +82,11 @@ async def analyze(
     width_mm: DimOverride = None,
     height_mm: DimOverride = None,
     shape: ShapeOverride = None,
+    units: UnitsOverride = None,
 ):
     """Extract part features and recommend the machines needed to make it."""
     data, ext = await _read_upload(file)
-    f = _extract(data, ext, file.filename)
+    f = _extract(data, ext, file.filename, units)
     f = _apply_overrides(f, material_id, length_mm, width_mm, height_mm, shape)
     routing = machine_selector.select_machines(f)
     f.notes += machine_selector.envelope_warnings(routing, f.bbox_mm)
@@ -98,6 +103,7 @@ async def estimate(
     width_mm: DimOverride = None,
     height_mm: DimOverride = None,
     shape: ShapeOverride = None,
+    units: UnitsOverride = None,
     machine_ids: Annotated[
         str | None, Form(description="Comma-separated machine ids to force a routing")
     ] = None,
@@ -105,7 +111,7 @@ async def estimate(
     """Full should-cost: material, labour and machine cost for the chosen location."""
     loc = catalog.get_location(location_id)
     data, ext = await _read_upload(file)
-    f = _extract(data, ext, file.filename)
+    f = _extract(data, ext, file.filename, units)
     f = _apply_overrides(f, material_id, length_mm, width_mm, height_mm, shape)
 
     if not f.material_id:
