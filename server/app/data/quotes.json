@@ -1,0 +1,6 @@
+{
+  "_meta": {
+    "description": "Real supplier quotes used by scripts/calibrate.py. Each entry: part (file path relative to server/) or features (explicit PartFeatures fields), material_id, location_id, quantity, unit_price, currency, supplier, date. Optional: units (mesh files), machine_ids (comma-separated forced routing). See README 'Calibration'."
+  },
+  "quotes": []
+}

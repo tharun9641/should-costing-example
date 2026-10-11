@@ -79,6 +79,34 @@ Each material's `pricing` block in `materials.json` says how it follows the mark
 `SC_LIVE_RATES=off` turns all fetching off (the test suite runs this way, with recorded
 responses in `tests/fixtures/live`).
 
+### Calibration
+
+Add real supplier quotes to `app/data/quotes.json`, then compare and fit:
+
+```bash
+.venv/bin/python scripts/calibrate.py            # per-quote error and suggested factors
+.venv/bin/python scripts/calibrate.py --apply    # also write them to locations.json
+```
+
+Example entry (use `part` for a file under `server/`, or `features` for explicit geometry):
+
+```json
+{
+  "part": "tests/fixtures/block_120x80x25_3holes.step",
+  "material_id": "AL6061",
+  "location_id": "IN-CHENNAI",
+  "quantity": 100,
+  "unit_price": 640,
+  "currency": "INR",
+  "supplier": "Example Precision Works",
+  "date": "2026-10-01"
+}
+```
+
+Per location it suggests the `material_price_factor` and a single machine-rate multiplier
+(applied to `machine_rate_factor` and every override) that minimise the squared percentage
+error. With one quote only the machine multiplier is fitted.
+
 ### Limitations
 
 - **Rate data is indicative seed data** (`app/data/*.json`). Swap in your own benchmarks or
