@@ -12,10 +12,13 @@ stored in app/data (status "fallback"). SC_LIVE_RATES=off disables all fetching.
 import csv
 import io
 import json
+import ssl
 import threading
 import time
 import urllib.request
 from dataclasses import dataclass
+
+import certifi
 
 from app.config import settings
 
@@ -45,9 +48,13 @@ def enabled() -> bool:
     return settings.live_rates
 
 
+# certifi's CA bundle: some Python builds (python.org on macOS) ship without one.
+_TLS = ssl.create_default_context(cafile=certifi.where())
+
+
 def _http_get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": "should-costing/1.0"})
-    with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+    with urllib.request.urlopen(req, timeout=TIMEOUT_S, context=_TLS) as r:
         return r.read()
 
 

@@ -6,3 +6,4 @@ pypdf>=5.0
 numpy>=2.0
 trimesh>=4.4
 networkx>=3.0  # graph engine trimesh uses for body splitting / facets
+certifi>=2024.2  # CA bundle for live-rate HTTPS fetches
