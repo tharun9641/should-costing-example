@@ -167,14 +167,17 @@ def labour_rate(location_id: str, skill: str = "machinist") -> LabourRate:
             f"Unknown skill '{skill}'. Available: {sorted(loc.labour_rates)}"
         )
     usd = loc.labour_rates[skill]
+    inp = loc.labour_inputs.get(skill)
     return LabourRate(
         location_id=loc.id,
         skill=skill,
+        base_wage_usd_per_hour=inp.base_wage_usd_per_hour if inp else None,
+        burden_factor=inp.burden_factor if inp else None,
         rate_usd_per_hour=usd,
         rate_local_per_hour=round(usd * loc.fx_per_usd, 2),
         currency=loc.currency,
-        source=loc.rate_source,
-        as_of=loc.rate_as_of,
+        source=inp.source if inp else "Unverified",
+        as_of=inp.as_of if inp else None,
     )
 
 

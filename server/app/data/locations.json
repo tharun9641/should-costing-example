@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "description": "Indicative fully-burdened labour rates (USD/hour) and regional cost factors. fx_per_usd for INR was updated in the 2026-10-11 accuracy review; other currencies are unverified seed values (see fx_source). machine_rate_overrides replace base rate x machine_rate_factor where one factor cannot fit. Replace with your own benchmark data.",
+    "description": "Labour rates per skill as base wage x burden factor (USD/hour) and regional cost factors. fx_per_usd for INR was updated in the 2026-10-11 accuracy review; other currencies are unverified seed values (see fx_source). machine_rate_overrides replace base rate x machine_rate_factor where one factor cannot fit. Replace with your own benchmark data.",
     "updated": "2026-10-11"
   },
   "locations": [
@@ -12,9 +12,12 @@
       "fx_per_usd": 96.8,
       "fx_source": "Current rate given in the accuracy review",
       "fx_as_of": "2026-10-11",
-      "labour_rates": { "operator": 3.5, "machinist": 5.0, "programmer": 8.0, "inspector": 4.5 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 3.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 5.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 8.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 4.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.02,
       "machine_rate_factor": 0.55,
       "machine_rate_overrides": {
@@ -33,9 +36,12 @@
       "fx_per_usd": 96.8,
       "fx_source": "Current rate given in the accuracy review",
       "fx_as_of": "2026-10-11",
-      "labour_rates": { "operator": 3.8, "machinist": 5.5, "programmer": 8.5, "inspector": 4.8 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 3.8, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 5.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 8.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 4.8, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.02,
       "machine_rate_factor": 0.57,
       "machine_rate_overrides": {
@@ -54,9 +60,12 @@
       "fx_per_usd": 7.2,
       "fx_source": "Unverified seed value",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 6.5, "machinist": 9.0, "programmer": 13.0, "inspector": 8.0 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 6.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 9.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 13.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 8.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 0.95,
       "machine_rate_factor": 0.6,
       "overhead_pct": 15,
@@ -70,9 +79,12 @@
       "fx_per_usd": 25000.0,
       "fx_source": "Unverified seed value",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 3.2, "machinist": 4.8, "programmer": 7.5, "inspector": 4.2 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 3.2, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 4.8, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 7.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 4.2, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.05,
       "machine_rate_factor": 0.6,
       "overhead_pct": 16,
@@ -86,9 +98,12 @@
       "fx_per_usd": 18.5,
       "fx_source": "Unverified seed value",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 5.5, "machinist": 8.0, "programmer": 12.0, "inspector": 7.0 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 5.5, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 8.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 12.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 7.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.03,
       "machine_rate_factor": 0.7,
       "overhead_pct": 18,
@@ -102,9 +117,12 @@
       "fx_per_usd": 1.0,
       "fx_source": "Base currency",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 32.0, "machinist": 42.0, "programmer": 55.0, "inspector": 38.0 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 32.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 42.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 55.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 38.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.1,
       "machine_rate_factor": 1.0,
       "overhead_pct": 25,
@@ -118,9 +136,12 @@
       "fx_per_usd": 0.92,
       "fx_source": "Unverified seed value",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 38.0, "machinist": 48.0, "programmer": 62.0, "inspector": 44.0 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 38.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 48.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 62.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 44.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.08,
       "machine_rate_factor": 1.05,
       "overhead_pct": 25,
@@ -134,9 +155,12 @@
       "fx_per_usd": 3.95,
       "fx_source": "Unverified seed value",
       "fx_as_of": "2026-10-01",
-      "labour_rates": { "operator": 14.0, "machinist": 19.0, "programmer": 27.0, "inspector": 17.0 },
-      "rate_source": "Indicative seed data (unverified)",
-      "rate_as_of": "2026-10-01",
+      "labour_rates": {
+        "operator": { "base_wage_usd_per_hour": 14.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "machinist": { "base_wage_usd_per_hour": 19.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "programmer": { "base_wage_usd_per_hour": 27.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" },
+        "inspector": { "base_wage_usd_per_hour": 17.0, "burden_factor": 1.0, "source": "Indicative seed data (unverified); fully burdened rate, burden not split out (burden_factor 1.0)", "as_of": "2026-10-01" }
+      },
       "material_price_factor": 1.06,
       "machine_rate_factor": 0.8,
       "overhead_pct": 20,

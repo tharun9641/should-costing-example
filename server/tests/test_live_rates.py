@@ -166,3 +166,19 @@ def test_failed_fred_fetch_backs_off(live_feeds, monkeypatch):
     monkeypatch.setattr(live_feeds.threading, "Thread", lambda **kw: started.append(kw))
     live_feeds.fred_feed.ensure_fresh()
     assert started == []  # within the retry window: no new fetch
+
+
+# ---------- Labour: base wage x burden ----------
+
+def test_labour_rate_is_base_wage_times_burden(client, tmp_path, monkeypatch):
+    rate = client.get("/api/rates/labour", params={"location_id": "IN-CHENNAI", "skill": "machinist"}).json()
+    assert (rate["base_wage_usd_per_hour"], rate["burden_factor"], rate["rate_usd_per_hour"]) == (5.0, 1.0, 5.0)
+    assert rate["source"] and rate["as_of"] and rate["status"] == "manual"
+
+    from app.schemas import Location
+
+    loc = catalog.locations()["IN-CHENNAI"].model_dump()
+    loc["labour_rates"] = {"machinist": {"base_wage_usd_per_hour": 1.0, "burden_factor": 1.3,
+                                         "source": "test", "as_of": "2026-10-12"}}
+    loc.pop("labour_inputs")
+    assert Location(**loc).labour_rates == {"machinist": pytest.approx(1.3)}

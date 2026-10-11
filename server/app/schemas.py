@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 # Where a rate came from: fetched within its TTL ("live"), an older fetch kept in
 # memory ("cached"), the stored app/data value because no fetch succeeded
@@ -17,13 +17,21 @@ class MachineRateOverride(BaseModel):
     as_of: str
 
 
+class LabourInput(BaseModel):
+    base_wage_usd_per_hour: float
+    burden_factor: float = Field(description="Employer cost per wage unit: benefits, social charges, leave")
+    source: str
+    as_of: str | None = None
+
+
 class Location(BaseModel):
     id: str
     name: str
     country: str
     currency: str
     fx_per_usd: float
-    labour_rates: dict[str, float]
+    labour_rates: dict[str, float] = Field(description="Effective USD/h: base wage x burden factor")
+    labour_inputs: dict[str, LabourInput] = {}
     material_price_factor: float
     machine_rate_factor: float
     machine_rate_overrides: dict[str, MachineRateOverride] = Field(
@@ -34,8 +42,21 @@ class Location(BaseModel):
     fx_source: str = "Unverified"
     fx_as_of: str | None = None
     fx_status: RateStatus = "fallback"
-    rate_source: str = "Unverified"
-    rate_as_of: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _labour_from_inputs(cls, data):
+        """labour_rates in the data file holds per-skill inputs; the engine uses base x burden."""
+        rates = data.get("labour_rates") if isinstance(data, dict) else None
+        if rates and isinstance(next(iter(rates.values())), dict):
+            data = {
+                **data,
+                "labour_inputs": rates,
+                "labour_rates": {
+                    k: v["base_wage_usd_per_hour"] * v["burden_factor"] for k, v in rates.items()
+                },
+            }
+        return data
 
 
 class MaterialPricing(BaseModel):
@@ -100,6 +121,8 @@ class MaterialRate(BaseModel):
 class LabourRate(BaseModel):
     location_id: str
     skill: str
+    base_wage_usd_per_hour: float | None = None
+    burden_factor: float | None = None
     rate_usd_per_hour: float
     rate_local_per_hour: float
     currency: str

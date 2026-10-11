@@ -31,6 +31,8 @@ function RateTable({ title, rows, nameKey, unit }) {
                   <span className={nameKey === 'skill' ? 'cap' : ''}>{r[nameKey]}</span>{' '}
                   <StatusBadge status={r.status} />
                   <div className="muted small">
+                    {r.base_wage_usd_per_hour != null &&
+                      `${money(r.base_wage_usd_per_hour)}/h wage × ${r.burden_factor} burden · `}
                     {r.source}
                     {r.as_of && ` · as of ${r.as_of}`}
                   </div>
