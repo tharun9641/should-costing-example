@@ -25,6 +25,10 @@ STEP_EXTS = {".step", ".stp"}
 SUPPORTED_EXTS = MESH_EXTS | STEP_EXTS
 
 SHEET_MAX_THICKNESS_MM = 6.0
+# Adjacent mesh triangles bending less than this belong to one smooth surface.
+# 35° (not 15°) so a 16-segment hole (22.5° steps) still reads as one bore; real
+# edges such as 45° chamfers and hex flats (60°) stay separate.
+SMOOTH_ANGLE_RAD = math.radians(35)
 
 
 class UnsupportedCADError(ValueError):
@@ -43,6 +47,16 @@ def parse_cad(data: bytes, file_name: str, ext: str) -> PartFeatures:
 
 def _complexity(score: int) -> str:
     return "low" if score < 20 else "medium" if score < 80 else "high"
+
+
+def _part_complexity(surfaces: int, holes: int) -> str:
+    """Scored on distinct surfaces + holes, so it does not depend on tessellation."""
+    return _complexity(surfaces + 3 * holes)
+
+
+def _mesh_surface_count(mesh: trimesh.Trimesh) -> int:
+    smooth = mesh.face_adjacency[mesh.face_adjacency_angles < SMOOTH_ANGLE_RAD]
+    return len(trimesh.graph.connected_components(smooth, nodes=np.arange(len(mesh.faces)), min_len=1))
 
 
 def _classify_envelope(bbox: list[float]) -> str:
@@ -107,12 +121,8 @@ def _parse_mesh(data: bytes, file_name: str, ext: str) -> PartFeatures:
 
     _classify_solid(f, bbox, volume_mm3, area_mm2, notes)
 
-    try:
-        facets = len(mesh.facets)
-    except Exception:
-        facets = 0
-    f.face_count = facets
-    f.complexity = _complexity(facets + 3 * f.hole_count)
+    f.face_count = _mesh_surface_count(mesh)
+    f.complexity = _part_complexity(f.face_count, f.hole_count)
     f.notes = notes
     return f
 
@@ -190,7 +200,7 @@ def _step_from_brep(b, f: PartFeatures, notes: list[str]) -> None:
     f.hole_count = len(brep.full_cylinders(b.cylinders, concave=True))
     f.confidence = "high"
     _classify_solid(f, b.bbox, b.volume_mm3, b.area_mm2, notes)
-    f.complexity = _complexity(b.face_count)
+    f.complexity = _part_complexity(b.surface_count, f.hole_count)
 
 
 def _step_from_text(text: str, scale: float, f: PartFeatures, notes: list[str]) -> None:

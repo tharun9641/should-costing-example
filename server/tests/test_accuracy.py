@@ -99,3 +99,23 @@ def test_pdf_implausible_envelope_asks_for_overrides(client):
     f = analyze(client, "odd.pdf", pdf)["features"]
     assert f["bbox_mm"] is None
     assert any("overrides" in n for n in f["notes"])
+
+
+# ---------- Complexity independent of tessellation ----------
+
+def _cx_and_route(client, name, data):
+    body = analyze(client, name, data)
+    return body["features"]["complexity"], tuple(s["machine_id"] for s in body["routing"])
+
+
+@pytest.mark.parametrize("make, resolutions, step", [
+    ("cylinder_stl", (32, 128, 256), "cylinder_d50x120.step"),
+    ("block_3holes_stl", (16, 32, 128), "block_120x80x25_3holes.step"),
+])
+def test_complexity_and_routing_ignore_mesh_resolution(client, make, resolutions, step):
+    from tests import conftest
+
+    results = {_cx_and_route(client, f"{make}_{n}.stl", getattr(conftest, make)(n)) for n in resolutions}
+    assert len(results) == 1, results  # was medium/high and lathe vs lathe+mill, 3- vs 5-axis
+    pytest.importorskip("OCP")
+    assert _cx_and_route(client, step, fixture_bytes(step)) in results

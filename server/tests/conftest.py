@@ -121,3 +121,17 @@ def no_ocp(monkeypatch):
     from app.services import cad_parser
 
     monkeypatch.setattr(cad_parser, "_read_brep", lambda data, notes: None)
+
+
+def cylinder_stl(sections: int) -> bytes:
+    """Ø50 x 120 mm cylinder."""
+    return mesh_bytes(trimesh.creation.cylinder(radius=25, height=120, sections=sections))
+
+
+def block_3holes_stl(segments: int) -> bytes:
+    """120 x 80 x 25 mm block with three Ø10 through-holes."""
+    holes = trimesh.util.concatenate([
+        trimesh.creation.cylinder(radius=5, height=40, sections=segments).apply_translation([x, 0, 0])
+        for x in (-30, 0, 30)
+    ])
+    return mesh_bytes(trimesh.creation.box(extents=[120, 80, 25]).difference(holes))

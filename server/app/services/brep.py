@@ -9,17 +9,19 @@ import tempfile
 from dataclasses import dataclass
 
 import numpy as np
+from OCP.BRep import BRep_Tool
 from OCP.Bnd import Bnd_Box
 from OCP.BRepAdaptor import BRepAdaptor_Surface
 from OCP.BRepBndLib import BRepBndLib
 from OCP.BRepGProp import BRepGProp, BRepGProp_Face
-from OCP.GeomAbs import GeomAbs_Cylinder
+from OCP.BRepLib import BRepLib
+from OCP.GeomAbs import GeomAbs_C0, GeomAbs_Cylinder
 from OCP.gp import gp_Pnt, gp_Vec
 from OCP.GProp import GProp_GProps
 from OCP.IFSelect import IFSelect_RetDone
 from OCP.Message import Message, Message_Gravity
 from OCP.STEPControl import STEPControl_Reader
-from OCP.TopAbs import TopAbs_FACE
+from OCP.TopAbs import TopAbs_EDGE, TopAbs_FACE, TopAbs_FORWARD
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopoDS import TopoDS
 
@@ -45,6 +47,7 @@ class Brep:
     volume_mm3: float
     area_mm2: float
     face_count: int
+    surface_count: int    # faces joined across tangent (G1) edges count once
     cylinders: list[CylFace]
 
 
@@ -75,16 +78,58 @@ def read_step(data: bytes) -> Brep | None:
     lo, hi = box.CornerMin(), box.CornerMax()
     bbox = sorted([hi.X() - lo.X(), hi.Y() - lo.Y(), hi.Z() - lo.Z()])
 
-    faces, cylinders = 0, []
-    explorer = TopExp_Explorer(shape, TopAbs_FACE)
-    while explorer.More():
-        face = TopoDS.Face(explorer.Current())
-        faces += 1
+    faces = [TopoDS.Face(f) for f in _sub_shapes(shape, TopAbs_FACE)]
+    cylinders = []
+    for face in faces:
         surf = BRepAdaptor_Surface(face)
         if surf.GetType() == GeomAbs_Cylinder:
             cylinders.append(_cyl_face(face, surf))
+    return Brep(bbox, volume, area, len(faces), _smooth_surface_count(shape, faces), cylinders)
+
+
+def _sub_shapes(shape, kind):
+    explorer = TopExp_Explorer(shape, kind)
+    while explorer.More():
+        yield explorer.Current()
         explorer.Next()
-    return Brep(bbox, volume, area, faces, cylinders)
+
+
+def _smooth_surface_count(shape, faces) -> int:
+    """Distinct surfaces: faces meeting along a tangent-continuous edge are merged.
+
+    Same rule as the mesh path (smooth-angle merge), so a part scores the same
+    whether it arrives as STEP or STL. A bore split into two half-faces is one.
+    """
+    BRepLib.EncodeRegularity_s(shape, 1e-3)
+    # OCP shapes hash by identity of the underlying edge but compare by Python
+    # identity, so bucket by hash and match with IsSame().
+    buckets: dict[int, list[tuple[object, set[int]]]] = {}
+    for i, face in enumerate(faces):
+        for e in _sub_shapes(face, TopAbs_EDGE):
+            e = e.Oriented(TopAbs_FORWARD)
+            bucket = buckets.setdefault(hash(e), [])
+            for other, owners in bucket:
+                if other.IsSame(e):
+                    owners.add(i)
+                    break
+            else:
+                bucket.append((e, {i}))
+
+    parent = list(range(len(faces)))
+
+    def root(i: int) -> int:
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for bucket in buckets.values():
+        for edge, owners in bucket:
+            if len(owners) == 2:
+                a, b = owners
+                if BRep_Tool.Continuity_s(TopoDS.Edge(edge), faces[a], faces[b]) != GeomAbs_C0:
+                    parent[root(a)] = root(b)
+    return len({root(i) for i in range(len(faces))})
 
 
 def _cyl_face(face, surf) -> CylFace:
