@@ -28,7 +28,7 @@ export default function MaterialPicker({ materials, location, value, onChange })
 
   return (
     <fieldset className="field">
-      <span>Material type</span>
+      <span>Type</span>
       <div className="chips" role="radiogroup" aria-label="Material type">
         {['', ...types].map((t) => (
           <button

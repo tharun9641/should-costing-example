@@ -3,6 +3,7 @@ import { getLocations, getMachines, getMaterials } from './api'
 import EstimateForm from './components/EstimateForm'
 import Results from './components/Results'
 import RatesView from './components/RatesView'
+import Icon from './components/Icon'
 import './App.css'
 
 const TABS = [
@@ -47,44 +48,52 @@ function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">₹$</span>
-          <div>
-            <h1>Should-Costing</h1>
-            <p>Part cost from a drawing or CAD model</p>
+        <div className="topbar-inner">
+          <div className="brand">
+            <span className="brand-mark">
+              <Icon name="box" size={20} />
+            </span>
+            <div>
+              <h1>Should-Costing</h1>
+              <p>Part cost from a drawing or CAD model</p>
+            </div>
           </div>
+          <nav className="tabs" role="tablist" aria-label="View">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={tab === t.id}
+                className={tab === t.id ? 'tab active' : 'tab'}
+                onClick={() => setTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setTheme(nextTheme)}
+            aria-label={`Theme: ${theme}. Switch to ${nextTheme}`}
+            title={`Theme: ${theme}`}
+          >
+            <Icon name={{ system: 'monitor', light: 'sun', dark: 'moon' }[theme]} />
+          </button>
         </div>
-        <nav className="tabs" role="tablist">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              role="tab"
-              aria-selected={tab === t.id}
-              className={tab === t.id ? 'tab active' : 'tab'}
-              onClick={() => setTab(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </nav>
-        <button
-          type="button"
-          className="theme-toggle"
-          onClick={() => setTheme(nextTheme)}
-          title={`Theme: ${theme} (click for ${nextTheme})`}
-        >
-          {{ system: '◐', light: '☀', dark: '☾' }[theme]} <span className="cap">{theme}</span>
-        </button>
       </header>
 
       {catalogError && (
         <div className="banner error" role="alert">
-          {catalogError}
-          <code>cd server && .venv/bin/uvicorn app.main:app --reload --port 8000</code>
+          <Icon name="alert" />
+          <div>
+            <strong>Can't reach the costing server.</strong> {catalogError}
+            <code>./dev.sh</code>
+          </div>
         </div>
       )}
 
-      <main>
+      <main className="main">
         {tab === 'estimate' ? (
           <div className="estimate-layout">
             <EstimateForm catalog={catalog} loading={catalogLoading} onResult={setResult} />

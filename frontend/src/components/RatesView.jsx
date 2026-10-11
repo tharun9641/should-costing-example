@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getRates } from '../api'
 import { money } from '../format'
+import Icon from './Icon'
 
 function RateTable({ title, rows, nameKey, unit }) {
   return (
@@ -95,7 +96,8 @@ export default function RatesView({ locations, loading }) {
 
       {error && (
         <div className="banner error" role="alert">
-          {error}
+          <Icon name="alert" />
+          <span>{error}</span>
         </div>
       )}
 

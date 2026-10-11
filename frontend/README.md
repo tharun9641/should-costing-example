@@ -14,10 +14,14 @@ npm install
 npm run dev        # http://localhost:5173
 ```
 
-In dev, Vite proxies `/api` and `/health` to `http://localhost:8000`. Point the proxy elsewhere
-with `VITE_API_PROXY=http://host:port npm run dev`, or have the built app call another origin
-directly with `VITE_API_URL=https://api.example.com npm run build` (add that origin's UI host
-to the server's `SC_CORS_ORIGINS`).
+Set the backend URL in `frontend/.env` (copy `.env.example`):
+
+```bash
+BACKEND_URL=https://api.example.com
+```
+
+The app then calls that origin directly (add the UI's host to the server's `SC_CORS_ORIGINS`).
+Unset, the app calls `/api` on its own origin, which in dev Vite proxies to `http://localhost:8000`.
 
 `npm run build` writes static files to `dist/`. `npm run lint` runs ESLint.
 

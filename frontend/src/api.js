@@ -1,6 +1,6 @@
 // Thin client for the FastAPI backend. In dev, Vite proxies /api to the server;
-// set VITE_API_URL to call a server on another origin instead.
-const BASE = import.meta.env.VITE_API_URL ?? ''
+// set BACKEND_URL in .env to call a server on another origin instead.
+const BASE = import.meta.env.BACKEND_URL ?? ''
 
 function errorMessage(body, status) {
   const detail = body?.detail

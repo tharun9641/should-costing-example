@@ -1,10 +1,11 @@
 import CostBar from './CostBar'
+import Icon from './Icon'
 import { downloadCsv, downloadJson } from '../export'
 import { money, num, SHAPE_LABELS } from '../format'
 
-function Tile({ label, value, sub }) {
+function Tile({ label, value, sub, hero }) {
   return (
-    <div className="tile">
+    <div className={hero ? 'tile hero' : 'tile'}>
       <span className="tile-label">{label}</span>
       <span className="tile-value">{value}</span>
       {sub && <span className="tile-sub">{sub}</span>}
@@ -89,14 +90,33 @@ export default function Results({ result, materials = [] }) {
       <div className="panel empty">
         <h2>No estimate yet</h2>
         <p className="muted">
-          Upload a PDF drawing or a CAD model, pick the manufacturing location and quantity, then
-          press <b>Estimate cost</b>. You'll get material, labour and machine cost, and the machines
-          needed to make the part.
+          Get material, labour and machine cost for a part, plus the machines needed to make it.
         </p>
-        <p className="muted small">
-          <b>Analyse only</b> shows what was read from the file and the suggested machines, without
-          pricing.
-        </p>
+        <ol className="how">
+          <li>
+            <span className="how-icon"><Icon name="upload" /></span>
+            <div>
+              <strong>Upload a part</strong>
+              <p className="muted small">A PDF drawing or a CAD model (STEP, STL, OBJ…).</p>
+            </div>
+          </li>
+          <li>
+            <span className="how-icon"><Icon name="pin" /></span>
+            <div>
+              <strong>Choose where and how many</strong>
+              <p className="muted small">Location sets labour, machine and material rates.</p>
+            </div>
+          </li>
+          <li>
+            <span className="how-icon"><Icon name="factory" /></span>
+            <div>
+              <strong>Estimate cost</strong>
+              <p className="muted small">
+                Or <b>Analyse only</b> to see what was read from the file and the suggested machines.
+              </p>
+            </div>
+          </li>
+        </ol>
       </div>
     )
   }
@@ -131,18 +151,18 @@ export default function Results({ result, materials = [] }) {
         </span>
         <div className="result-buttons">
           <button type="button" className="btn ghost" onClick={() => downloadCsv(data)}>
-            CSV
+            <Icon name="download" size={16} /> CSV
           </button>
           <button type="button" className="btn ghost" onClick={() => downloadJson(data)}>
-            JSON
+            <Icon name="download" size={16} /> JSON
           </button>
           <button type="button" className="btn ghost" onClick={() => window.print()}>
-            Print
+            <Icon name="printer" size={16} /> Print
           </button>
         </div>
       </div>
       <div className="tiles">
-        <Tile label="Unit price" value={money(cost.unit_price_local, cost.currency)} sub={money(cost.unit_price_usd)} />
+        <Tile hero label="Unit price" value={money(cost.unit_price_local, cost.currency)} sub={money(cost.unit_price_usd)} />
         <Tile
           label={`Total · ${num(quantity, 0)} pcs`}
           value={money(cost.total_price_local, cost.currency)}

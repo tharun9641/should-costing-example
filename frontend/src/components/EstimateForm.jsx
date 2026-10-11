@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { analyzePart, estimatePart } from '../api'
 import MaterialPicker from './MaterialPicker'
+import Icon from './Icon'
 
 const ACCEPT = '.pdf,.step,.stp,.stl,.obj,.ply,.off,.3mf,.glb'
 
@@ -27,6 +28,7 @@ function DropZone({ file, onFile }) {
       onClick={() => inputRef.current?.click()}
       role="button"
       tabIndex={0}
+      aria-label={file ? `Selected ${file.name}. Choose another file` : 'Choose a drawing or CAD file'}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}
     >
       <input
@@ -36,6 +38,9 @@ function DropZone({ file, onFile }) {
         hidden
         onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
       />
+      <span className="dropzone-icon">
+        <Icon name={file ? 'file' : 'upload'} size={22} />
+      </span>
       {file ? (
         <>
           <strong className="file-name">{file.name}</strong>
@@ -43,11 +48,22 @@ function DropZone({ file, onFile }) {
         </>
       ) : (
         <>
-          <strong>Drop a drawing or CAD file</strong>
+          <strong>
+            Drop a file or <span className="link-text">browse</span>
+          </strong>
           <span className="muted">PDF, STEP, STL, OBJ, PLY, 3MF, GLB</span>
         </>
       )}
     </div>
+  )
+}
+
+function StepHead({ n, title }) {
+  return (
+    <h2 className="step-head">
+      <span className="step-num" aria-hidden="true">{n}</span>
+      {title}
+    </h2>
   )
 }
 
@@ -125,12 +141,13 @@ export default function EstimateForm({ catalog, loading, onResult }) {
   return (
     <form
       className="panel form"
+      aria-busy={!!busy}
       onSubmit={(e) => {
         e.preventDefault()
         run('estimate')
       }}
     >
-      <h2>Part</h2>
+      <StepHead n={1} title="Part file" />
       <DropZone
         file={file}
         onFile={(f) => {
@@ -139,29 +156,34 @@ export default function EstimateForm({ catalog, loading, onResult }) {
         }}
       />
 
-      <label className="field">
-        <span>Location</span>
-        <select value={location} onChange={(e) => setLocationId(e.target.value)} disabled={loading}>
-          {loading && <option value="">Loading…</option>}
-          {catalog.locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name} ({l.currency})
-            </option>
-          ))}
-        </select>
-      </label>
+      <StepHead n={2} title="Production" />
+      <div className="field-row production">
+        <label className="field">
+          <span>Location</span>
+          <select value={location} onChange={(e) => setLocationId(e.target.value)} disabled={loading}>
+            {loading && <option value="">Loading…</option>}
+            {catalog.locations.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name} ({l.currency})
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label className="field quantity">
-        <span>Quantity</span>
-        <input
-          type="number"
-          min="1"
-          max="1000000"
-          value={quantity}
-          onChange={(e) => setQuantity(e.target.value)}
-          required
-        />
-      </label>
+        <label className="field quantity">
+          <span>Quantity</span>
+          <input
+            type="number"
+            min="1"
+            max="1000000"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            required
+          />
+        </label>
+      </div>
+
+      <StepHead n={3} title="Material" />
 
       <MaterialPicker
         materials={catalog.materials}
@@ -176,7 +198,7 @@ export default function EstimateForm({ catalog, loading, onResult }) {
         aria-expanded={showAdvanced}
         onClick={() => setShowAdvanced((s) => !s)}
       >
-        {showAdvanced ? '▾' : '▸'} Overrides
+        <Icon name="chevron" size={16} className={showAdvanced ? 'rot' : ''} /> Overrides
         {activeOverrides > 0 && <span className="count">{activeOverrides} active</span>}
       </button>
 
@@ -254,15 +276,18 @@ export default function EstimateForm({ catalog, loading, onResult }) {
 
       {error && (
         <div className="banner error" role="alert">
-          {error}
+          <Icon name="alert" />
+          <span>{error}</span>
         </div>
       )}
 
       <div className="actions">
         <button type="button" className="btn secondary" disabled={!!busy} onClick={() => run('analyze')}>
+          {busy === 'analyze' ? <Icon name="loader" className="spin" /> : <Icon name="search" />}
           {busy === 'analyze' ? 'Analysing…' : 'Analyse only'}
         </button>
         <button type="submit" className="btn primary" disabled={!!busy || loading}>
+          {busy === 'estimate' && <Icon name="loader" className="spin" />}
           {busy === 'estimate' ? 'Estimating…' : 'Estimate cost'}
         </button>
       </div>
